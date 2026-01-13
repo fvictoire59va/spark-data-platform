@@ -6,14 +6,14 @@ from pyspark.sql import DataFrame, functions as F
 from src.common.quality.data_quality import CheckSeverity, DataQualityChecker
 from src.common.readers.delta_reader import DeltaReader
 from src.common.transformers.base_transformer import TransformationPipeline
-from src.common.transformers.cleansing import (
+from src.common.transformers.cleaning import (
     DropDuplicatesTransformer,
     FillNullsTransformer,
     TrimStringsTransformer,
 )
 from src.common.writers.delta_writer import DeltaWriter
 from src.core.config_manager import Environment
-from src.pipelines.sales.jobs.base_job import BaseSparkJob
+from src.core.base_job import BaseSparkJob
 
 
 class TransformOrdersJob(BaseSparkJob):

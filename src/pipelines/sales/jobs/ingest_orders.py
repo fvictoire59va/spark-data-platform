@@ -6,7 +6,7 @@ from pyspark.sql import DataFrame, functions as F
 from src.common.readers.jdbc_reader import JDBCReader
 from src.common.writers.delta_writer import DeltaWriter
 from src.core.config_manager import Environment
-from src.pipelines.sales.jobs.base_job import BaseSparkJob
+from src.core.base_job import BaseSparkJob
 from src.pipelines.sales.schemas.orders_schema import ORDERS_BRONZE_SCHEMA
 
 

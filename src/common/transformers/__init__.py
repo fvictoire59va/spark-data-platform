@@ -3,7 +3,7 @@ from src.common.transformers.base_transformer import (
     BaseTransformer,
     TransformationPipeline,
 )
-from src.common.transformers.cleansing import (
+from src.common.transformers.cleaning import (
     DropDuplicatesTransformer,
     DropNullsTransformer,
     FillNullsTransformer,
