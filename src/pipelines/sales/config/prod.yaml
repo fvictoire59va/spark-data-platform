@@ -1,0 +1,79 @@
+# Configuration Production - Pipeline Sales
+pipeline:
+  name: sales_orders_pipeline
+  version: "1.0.0"
+  owner: data-team
+  
+sources:
+  orders:
+    type: jdbc
+    url: ${JDBC_URL}
+    table: sales.orders
+    user: ${JDBC_USER}
+    password: ${JDBC_PASSWORD}
+    fetch_size: 10000
+    
+  customers:
+    type: delta
+    path: /data/lake/silver/customers
+    
+targets:
+  bronze:
+    type: delta
+    path: /data/lake/bronze/sales/orders
+    mode: append
+    partition_by:
+      - order_date
+      
+  silver:
+    type: delta
+    path: /data/lake/silver/sales/orders
+    mode: merge
+    merge_keys:
+      - order_id
+    partition_by:
+      - order_date
+      
+  gold:
+    type: delta
+    path: /data/lake/gold/sales/daily_aggregates
+    mode: overwrite
+    partition_by:
+      - report_date
+
+transformations:
+  cleansing:
+    - trim_strings: true
+    - lowercase_columns:
+        - customer_email
+    - fill_nulls:
+        quantity: 0
+        discount: 0.0
+        
+  validation:
+    - not_null:
+        - order_id
+        - customer_id
+        - order_date
+    - value_range:
+        column: quantity
+        min: 1
+        max: 10000
+    - values_in_set:
+        column: status
+        values: ["pending", "confirmed", "shipped", "delivered", "cancelled"]
+
+quality:
+  fail_on_error: true
+  checks:
+    - name: minimum_records
+      min_count: 100
+    - name: no_duplicates
+      columns:
+        - order_id
+
+scheduling:
+  cron: "0 6 * * *"  # Tous les jours à 6h
+  timeout_minutes: 60
+  retries: 3
+  retry_delay_minutes: 5

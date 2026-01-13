@@ -1,0 +1,149 @@
+name: CD - Deploy to Prod
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to deploy"
+        required: true
+
+env:
+  AWS_REGION: eu-west-1
+  ENVIRONMENT: prod
+
+jobs:
+  # ============ APPROVAL ============
+  approval:
+    name: Production Approval
+    runs-on: ubuntu-latest
+    environment: production-approval
+    steps:
+      - name: Approval Gate
+        run: echo "Deployment approved"
+
+  # ============ E2E TESTS ============
+  e2e-tests:
+    name: E2E Tests on Staging
+    runs-on: ubuntu-latest
+    needs: approval
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+
+      - name: Run E2E tests
+        run: |
+          poetry run pytest tests/e2e \
+            -v \
+            -m e2e \
+            --junitxml=test-results/e2e-tests.xml
+
+  # ============ DEPLOY ============
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Init
+        working-directory: infrastructure/terraform/environments/prod
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: infrastructure/terraform/environments/prod
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: infrastructure/terraform/environments/prod
+        run: terraform apply -auto-approve tfplan
+
+      - name: Deploy Spark Jobs
+        run: |
+          VERSION=${{ github.event.release.tag_name || github.event.inputs.version }}
+          aws s3 sync src/ s3://${{ secrets.PROD_S3_BUCKET }}/jobs/${VERSION}/src/
+          aws s3 sync configs/prod/ s3://${{ secrets.PROD_S3_BUCKET }}/jobs/${VERSION}/configs/
+
+      - name: Update EMR Step
+        run: |
+          aws emr add-steps \
+            --cluster-id ${{ secrets.PROD_EMR_CLUSTER_ID }} \
+            --steps Type=CUSTOM_JAR,Name="Deploy-${VERSION}",ActionOnFailure=CONTINUE,Jar=command-runner.jar,Args=[spark-submit,--deploy-mode,cluster,s3://${{ secrets.PROD_S3_BUCKET }}/jobs/${VERSION}/src/main.py]
+
+      - name: Create deployment record
+        run: |
+          echo "Deployed version: ${{ github.event.release.tag_name }}" >> deployment.log
+          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> deployment.log
+          aws s3 cp deployment.log s3://${{ secrets.PROD_S3_BUCKET }}/deployments/
+
+      - name: Notify Slack
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: "#prod-deployments"
+          fields: repo,commit,author,action,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_PROD }}
+
+  # ============ ROLLBACK ============
+  rollback:
+    name: Rollback (if needed)
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: failure()
+    environment: production
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get previous version
+        id: previous
+        run: |
+          PREVIOUS=$(aws s3 ls s3://${{ secrets.PROD_S3_BUCKET }}/jobs/ | sort | tail -2 | head -1 | awk '{print $2}' | tr -d '/')
+          echo "version=${PREVIOUS}" >> $GITHUB_OUTPUT
+
+      - name: Rollback to previous version
+        run: |
+          echo "Rolling back to version: ${{ steps.previous.outputs.version }}"
+          aws emr add-steps \
+            --cluster-id ${{ secrets.PROD_EMR_CLUSTER_ID }} \
+            --steps Type=CUSTOM_JAR,Name="Rollback-${{ steps.previous.outputs.version }}",ActionOnFailure=CONTINUE,Jar=command-runner.jar,Args=[spark-submit,--deploy-mode,cluster,s3://${{ secrets.PROD_S3_BUCKET }}/jobs/${{ steps.previous.outputs.version }}/src/main.py]
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: "warning"
+          text: "⚠️ Production rollback initiated to version ${{ steps.previous.outputs.version }}"
+          channel: "#prod-deployments"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_PROD }}

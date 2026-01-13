@@ -1,0 +1,191 @@
+version: "3.8"
+
+services:
+  # ============ SPARK MASTER ============
+  spark-master:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark-base
+    container_name: spark-master
+    hostname: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+    ports:
+      - "8080:8080"   # Web UI
+      - "7077:7077"   # Master port
+      - "4040:4040"   # Application UI
+    volumes:
+      - spark-logs:/opt/spark/logs
+      - ./data:/opt/spark/data
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: >
+      bash -c "
+        ${SPARK_HOME}/sbin/start-master.sh && 
+        tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.master.Master-*.out
+      "
+
+  # ============ SPARK WORKERS ============
+  spark-worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark-base
+    container_name: spark-worker-1
+    hostname: spark-worker-1
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_WORKER_WEBUI_PORT=8081
+    ports:
+      - "8081:8081"
+    volumes:
+      - spark-logs:/opt/spark/logs
+      - ./data:/opt/spark/data
+    networks:
+      - spark-network
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    command: >
+      bash -c "
+        ${SPARK_HOME}/sbin/start-worker.sh spark://spark-master:7077 &&
+        tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.worker.Worker-*.out
+      "
+
+  spark-worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark-base
+    container_name: spark-worker-2
+    hostname: spark-worker-2
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_WORKER_WEBUI_PORT=8082
+    ports:
+      - "8082:8082"
+    volumes:
+      - spark-logs:/opt/spark/logs
+      - ./data:/opt/spark/data
+    networks:
+      - spark-network
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    command: >
+      bash -c "
+        ${SPARK_HOME}/sbin/start-worker.sh spark://spark-master:7077 &&
+        tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.worker.Worker-*.out
+      "
+
+  # ============ SPARK HISTORY SERVER ============
+  spark-history:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark-base
+    container_name: spark-history
+    hostname: spark-history
+    environment:
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/opt/spark/history
+    ports:
+      - "18080:18080"
+    volumes:
+      - spark-history:/opt/spark/history
+    networks:
+      - spark-network
+    command: >
+      bash -c "
+        mkdir -p /opt/spark/history &&
+        ${SPARK_HOME}/sbin/start-history-server.sh &&
+        tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.history.HistoryServer-*.out
+      "
+
+  # ============ MINIO (S3 Compatible) ============
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    hostname: minio
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    volumes:
+      - minio-data:/data
+    networks:
+      - spark-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============ DELTA LAKE METASTORE (PostgreSQL) ============
+  metastore-db:
+    image: postgres:15-alpine
+    container_name: metastore-db
+    hostname: metastore-db
+    environment:
+      - POSTGRES_USER=hive
+      - POSTGRES_PASSWORD=hive123
+      - POSTGRES_DB=metastore
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hive -d metastore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============ JUPYTER NOTEBOOK ============
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark-job
+    container_name: jupyter
+    hostname: jupyter
+    environment:
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - JUPYTER_TOKEN=spark123
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/home/spark/notebooks
+      - ./data:/opt/spark/data
+    networks:
+      - spark-network
+    depends_on:
+      - spark-master
+    command: >
+      bash -c "
+        pip install jupyterlab &&
+        jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='spark123'
+      "
+
+networks:
+  spark-network:
+    driver: bridge
+
+volumes:
+  spark-logs:
+  spark-history:
+  minio-data:
+  postgres-data:
