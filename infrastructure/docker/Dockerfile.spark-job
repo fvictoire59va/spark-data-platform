@@ -1,38 +1,69 @@
 # Image pour exécuter les jobs Spark
-FROM spark-base:latest AS builder
+FROM eclipse-temurin:11-jdk-jammy AS base
 
-USER root
+# Arguments de build
+ARG SPARK_VERSION=3.5.0
+ARG HADOOP_VERSION=3
+ARG PYTHON_VERSION=3.11
 
-# Installation des dépendances Python pour le build
-RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
+# Variables d'environnement
+ENV SPARK_HOME=/opt/spark
+ENV PATH="${SPARK_HOME}/bin:${SPARK_HOME}/sbin:${PATH}"
+ENV PYTHONPATH="${SPARK_HOME}/python:${SPARK_HOME}/python/lib/py4j-0.10.9.7-src.zip:${PYTHONPATH}"
+ENV PYSPARK_PYTHON=python3
+ENV PYSPARK_DRIVER_PYTHON=python3
 
-# Copie du projet
-WORKDIR /app
-COPY pyproject.toml poetry.lock* ./
-COPY src/ ./src/
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Téléchargement et installation de Spark
+RUN curl -fsSL "https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz" \
+    | tar -xz -C /opt/ \
+    && mv /opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION} ${SPARK_HOME} \
+    && chmod -R 755 ${SPARK_HOME}
+
+# Installation des JARs Delta Lake
+RUN curl -fsSL "https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.0.0/delta-spark_2.12-3.0.0.jar" \
+    -o ${SPARK_HOME}/jars/delta-spark_2.12-3.0.0.jar \
+    && curl -fsSL "https://repo1.maven.org/maven2/io/delta/delta-storage/3.0.0/delta-storage-3.0.0.jar" \
+    -o ${SPARK_HOME}/jars/delta-storage-3.0.0.jar
 
 # Installation des dépendances Python
-RUN pip3 install --no-cache-dir poetry \
-    && poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi --only main
+RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel poetry
 
-# ============ Image finale ============
-FROM spark-base:latest
+WORKDIR /app
 
-USER root
+# Copier les fichiers Python du projet (s'ils existent)
+COPY pyproject.toml poetry.lock* ./
+COPY src/ ./src/
+COPY configs/ ./configs/
 
-# Copie des dépendances Python installées
-COPY --from=builder /usr/local/lib/python3.11/dist-packages /usr/local/lib/python3.11/dist-packages
+# Installer les dépendances (avec fallback si elles manquent)
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --only main 2>&1 || \
+    echo "Attention: Dépendances Poetry non installées, utilisation de pip uniquement"
 
-# Copie du code source
-COPY --chown=spark:spark src/ /opt/spark/jobs/src/
-COPY --chown=spark:spark configs/ /opt/spark/jobs/configs/
+# Installer les dépendances critiques
+RUN pip3 install --no-cache-dir \
+    pyspark==3.5.0 \
+    delta-spark==3.0.0 \
+    pydantic==2.5.0 \
+    structlog==23.2.0 \
+    boto3==1.34.0 \
+    pyarrow==15.0.0 \
+    pandas==2.1.0
 
-# Variables d'environnement pour les jobs
+# Répertoires de travail
+RUN mkdir -p /opt/spark/jobs/src /opt/spark/jobs/configs
+
 ENV PYTHONPATH="/opt/spark/jobs:${PYTHONPATH}"
 ENV SPARK_JOB_CONFIG_PATH="/opt/spark/jobs/configs"
 
-USER spark
 WORKDIR /opt/spark/jobs
 
 # Entrypoint pour soumettre les jobs

@@ -1,15 +1,16 @@
-version: "3.8"
-
 services:
   # ============ SPARK MASTER ============
   spark-master:
     build:
       context: .
       dockerfile: Dockerfile.spark-base
+      args:
+        - SPARK_VERSION=${SPARK_VERSION:-3.5.0}
     container_name: spark-master
     hostname: spark-master
     environment:
       - SPARK_MODE=master
+      - SPARK_HOME=/opt/spark
       - SPARK_MASTER_HOST=spark-master
       - SPARK_MASTER_PORT=7077
       - SPARK_MASTER_WEBUI_PORT=8080
@@ -38,10 +39,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.spark-base
+      args:
+        - SPARK_VERSION=${SPARK_VERSION:-3.5.0}
     container_name: spark-worker-1
     hostname: spark-worker-1
     environment:
       - SPARK_MODE=worker
+      - SPARK_HOME=/opt/spark
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_CORES=2
       - SPARK_WORKER_MEMORY=4g
@@ -66,10 +70,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.spark-base
+      args:
+        - SPARK_VERSION=${SPARK_VERSION:-3.5.0}
     container_name: spark-worker-2
     hostname: spark-worker-2
     environment:
       - SPARK_MODE=worker
+      - SPARK_HOME=/opt/spark
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_CORES=2
       - SPARK_WORKER_MEMORY=4g
@@ -95,9 +102,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.spark-base
+      args:
+        - SPARK_VERSION=${SPARK_VERSION:-3.5.0}
     container_name: spark-history
     hostname: spark-history
     environment:
+      - SPARK_HOME=/opt/spark
       - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/opt/spark/history
     ports:
       - "18080:18080"
@@ -158,13 +168,14 @@ services:
   # ============ JUPYTER NOTEBOOK ============
   jupyter:
     build:
-      context: .
-      dockerfile: Dockerfile.spark-job
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.spark-job
     container_name: jupyter
     hostname: jupyter
     environment:
+      - SPARK_HOME=/opt/spark
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - JUPYTER_TOKEN=spark123
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN:-spark123}
     ports:
       - "8888:8888"
     volumes:
@@ -177,7 +188,7 @@ services:
     command: >
       bash -c "
         pip install jupyterlab &&
-        jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='spark123'
+        jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='${JUPYTER_TOKEN:-spark123}'
       "
 
 networks:
