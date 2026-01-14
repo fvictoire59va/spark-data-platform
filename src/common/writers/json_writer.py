@@ -135,7 +135,7 @@ class JSONWriter(BaseWriter):
 
         logger.info(f"Écriture JSON terminée: {self.path}")
 
-        return self.path
+        return str(self.path)
 
     def _build_options(self) -> dict[str, Any]:
         """
@@ -178,8 +178,9 @@ class JSONWriter(BaseWriter):
             Mode d'écriture
         """
         if isinstance(self.mode, WriteMode):
-            return self.mode.value
-        return self.mode
+            mode_value: str = self.mode.value
+            return mode_value
+        return str(self.mode)
 
 
 class JSONWriterBuilder:
@@ -198,7 +199,7 @@ class JSONWriterBuilder:
         >>> writer.write(df)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialise le builder."""
         self._path: str | None = None
         self._mode: WriteMode = WriteMode.ERROR_IF_EXISTS
@@ -393,7 +394,7 @@ class NestedJSONWriter(BaseWriter):
 
         logger.info(f"Écriture JSON imbriqué terminée: {self.path}")
 
-        return self.path
+        return str(self.path)
 
 
 class ArrayJSONWriter(BaseWriter):
@@ -490,7 +491,7 @@ class ArrayJSONWriter(BaseWriter):
 
         logger.info(f"Écriture JSON avec arrays terminée: {self.path}")
 
-        return self.path
+        return str(self.path)
 
 
 # Fonctions utilitaires

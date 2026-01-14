@@ -60,10 +60,13 @@ class DataQualityChecker:
     ) -> DataQualityChecker:
         """Vérifie que les colonnes ne sont pas nulles."""
         for col in columns:
+            def check_fn(df: DataFrame, c: str = col) -> bool:
+                return df.filter(F.col(c).isNull()).count() == 0
+
             self._checks.append(
                 QualityCheck(
                     name=f"not_null_{col}",
-                    check_fn=lambda df, c=col: df.filter(F.col(c).isNull()).count() == 0,
+                    check_fn=check_fn,
                     severity=severity,
                     description=f"Colonne {col} ne doit pas contenir de NULL",
                 )

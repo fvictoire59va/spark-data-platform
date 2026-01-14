@@ -158,6 +158,7 @@ class JSONReader(BaseReader):
                 columns=len(df.columns),
             )
 
+            assert isinstance(df, DataFrame)
             return df
 
         except Exception as e:

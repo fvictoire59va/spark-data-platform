@@ -4,7 +4,7 @@ from __future__ import annotations
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import yaml
 from pydantic import Field, field_validator
@@ -91,7 +91,11 @@ class PipelineConfig:
 
         if config_path.exists():
             with open(config_path) as f:
-                self._config = yaml.safe_load(f) or {}
+                loaded_config = yaml.safe_load(f)
+                if loaded_config is not None and isinstance(loaded_config, dict):
+                    self._config = loaded_config
+                else:
+                    self._config = {}
         else:
             raise FileNotFoundError(f"Configuration non trouvée: {config_path}")
 
@@ -102,7 +106,7 @@ class PipelineConfig:
 
         for k in keys:
             if isinstance(value, dict):
-                value = value.get(k)
+                value = value.get(k)  # type: ignore[assignment]
             else:
                 return default
 
@@ -111,17 +115,23 @@ class PipelineConfig:
     @property
     def source_config(self) -> dict[str, Any]:
         """Configuration des sources de données."""
-        return self._config.get("sources", {})
+        result = self._config.get("sources", {})
+        assert isinstance(result, dict)
+        return result
 
     @property
     def target_config(self) -> dict[str, Any]:
         """Configuration des destinations."""
-        return self._config.get("targets", {})
+        result = self._config.get("targets", {})
+        assert isinstance(result, dict)
+        return result
 
     @property
     def transformations(self) -> list[dict[str, Any]]:
         """Liste des transformations à appliquer."""
-        return self._config.get("transformations", [])
+        result = self._config.get("transformations", [])
+        assert isinstance(result, list)
+        return result
 
 
 @lru_cache

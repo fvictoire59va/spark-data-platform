@@ -61,7 +61,7 @@ class AggregationSpec:
     alias: str | None = None
     percentile_value: float = 0.5  # Pour PERCENTILE
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Convertit le type si nécessaire."""
         if isinstance(self.agg_type, str):
             self.agg_type = AggregationType(self.agg_type.lower())
@@ -192,11 +192,13 @@ class AggregationTransformer(BaseTransformer):
             AggregationType.PERCENTILE: lambda: F.percentile_approx(col, spec.percentile_value),
         }
 
-        agg_func = agg_map.get(spec.agg_type)
+        agg_type = spec.agg_type if isinstance(spec.agg_type, AggregationType) else AggregationType(spec.agg_type)
+        agg_func = agg_map.get(agg_type)
         if not agg_func:
-            raise ValueError(f"Type d'agrégation non supporté: {spec.agg_type}")
+            raise ValueError(f"Type d'agrégation non supporté: {agg_type}")
 
-        return agg_func().alias(spec.alias)
+        alias = spec.alias if isinstance(spec.alias, str) else ""
+        return agg_func().alias(alias)
 
 
 class WindowAggregationTransformer(BaseTransformer):
@@ -277,7 +279,7 @@ class WindowAggregationTransformer(BaseTransformer):
 
         return result
 
-    def _build_window_spec(self) -> Window:
+    def _build_window_spec(self) -> Any:
         """
         Construit la spécification de fenêtre.
 
@@ -314,7 +316,7 @@ class WindowAggregationTransformer(BaseTransformer):
 
         return spec
 
-    def _build_window_expr(self, spec: WindowAggSpec, window_spec) -> Column:
+    def _build_window_expr(self, spec: WindowAggSpec, window_spec: Any) -> Column:
         """
         Construit l'expression de fenêtre.
 
@@ -623,9 +625,10 @@ class RollupTransformer(BaseTransformer):
             AggregationType.MAX: F.max(col),
         }
 
-        agg_expr = agg_map.get(spec.agg_type)
+        agg_type = spec.agg_type if isinstance(spec.agg_type, AggregationType) else AggregationType(spec.agg_type)
+        agg_expr = agg_map.get(agg_type)
         if not agg_expr:
-            raise ValueError(f"Type non supporté pour rollup: {spec.agg_type}")
+            raise ValueError(f"Type non supporté pour rollup: {agg_type}")
 
         return agg_expr.alias(spec.alias)
 
@@ -697,9 +700,10 @@ class CubeTransformer(BaseTransformer):
             AggregationType.MAX: F.max(col),
         }
 
-        agg_expr = agg_map.get(spec.agg_type)
+        agg_type = spec.agg_type if isinstance(spec.agg_type, AggregationType) else AggregationType(spec.agg_type)
+        agg_expr = agg_map.get(agg_type)
         if not agg_expr:
-            raise ValueError(f"Type non supporté pour cube: {spec.agg_type}")
+            raise ValueError(f"Type non supporté pour cube: {agg_type}")
 
         return agg_expr.alias(spec.alias)
 
@@ -728,7 +732,7 @@ def aggregate_by_group(
         ...     agg_dict={"amount": "sum", "quantity": "avg"}
         ... )
     """
-    agg_exprs = []
+    agg_exprs: list[Any] = []
 
     for col_name, agg_func in agg_dict.items():
         col = F.col(col_name)

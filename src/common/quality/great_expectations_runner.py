@@ -167,6 +167,7 @@ class GreatExpectationsRunner:
         self._expectations_cache[suite_name] = expectations
         logger.info(f"Expectations chargées: {suite_name}")
 
+        assert isinstance(expectations, dict)
         return expectations
 
     def validate(

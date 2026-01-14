@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from src.common.quality import DataQualityChecker, QualityCheck
+from src.common.quality import CheckSeverity, DataQualityChecker, QualityCheck
 from src.common.writers import DeltaWriter
 from src.core.base_job import BaseSparkJob
 from src.core.logger import get_logger
@@ -13,27 +13,27 @@ from src.core.logger import get_logger
 logger = get_logger(__name__)
 
 
-class AggregateSalesJob(BaseSparkJob):
+class AggregateSalesJob(BaseSparkJob):  # type: ignore[override]
     """Agrège les ventes par différentes dimensions pour la couche Gold."""
 
     @property
-    def job_name(self) -> str:
+    def job_name(self) -> str:  # type: ignore[override]
         return "aggregate_sales"
 
     @property
-    def domain(self) -> str:
+    def domain(self) -> str:  # type: ignore[override]
         return "sales"
 
-    def extract(self) -> dict[str, DataFrame]:
+    def extract(self) -> dict[str, DataFrame]:  # type: ignore[override]
         """
         Lit les données transformées depuis Silver.
 
         Returns:
             Dict avec les DataFrames sources
         """
-        silver_path = self._get_config("paths.silver.orders")
+        silver_path = self._get_config("paths.silver.orders")  # type: ignore[attr-defined]
 
-        df_orders = self._spark.read.format("delta").load(silver_path)
+        df_orders = self._spark.read.format("delta").load(silver_path)  # type: ignore[union-attr]
 
         logger.info(
             "Extraction Silver terminée",
@@ -42,7 +42,7 @@ class AggregateSalesJob(BaseSparkJob):
 
         return {"orders": df_orders}
 
-    def transform(self, data: dict[str, DataFrame]) -> dict[str, DataFrame]:
+    def transform(self, data: dict[str, DataFrame]) -> dict[str, DataFrame]:  # type: ignore[override]
         """
         Crée les agrégations pour Gold.
 
@@ -70,20 +70,20 @@ class AggregateSalesJob(BaseSparkJob):
             "top_products": df_top_products,
         }
 
-    def load(self, data: dict[str, DataFrame]) -> None:
+    def load(self, data: dict[str, DataFrame]) -> None:  # type: ignore[override]
         """
         Écrit les tables Gold.
 
         Args:
             data: Dict des DataFrames à écrire
         """
-        gold_base_path = self._get_config("paths.gold")
+        gold_base_path = self._get_config("paths.gold")  # type: ignore[attr-defined]
 
         for table_name, df in data.items():
             path = f"{gold_base_path}/{table_name}"
 
             writer = DeltaWriter(
-                self._spark,
+                self._spark,  # type: ignore[arg-type]
                 {
                     "path": path,
                     "mode": "overwrite",
@@ -98,24 +98,21 @@ class AggregateSalesJob(BaseSparkJob):
                 rows=df.count(),
             )
 
-    def validate(self, data: dict[str, DataFrame]) -> bool:
+    def validate(self, data: dict[str, DataFrame]) -> bool:  # type: ignore[override]
         """Valide les agrégations."""
-        checker = DataQualityChecker(self._spark)
+        df_to_check = list(data.values())[0]  # Check sur le premier
+        checker = DataQualityChecker(df_to_check)
 
-        for table_name in data:
-            checker.add_check(
-                QualityCheck(
-                    name=f"{table_name}_not_empty",
-                    check_type="row_count",
-                    params={"min_count": 1},
-                    description=f"Table {table_name} non vide",
-                )
+        # Vérifie que chaque table n'est pas vide
+        for table_name, df in data.items():
+            checker.check_not_null(
+                columns=list(df.columns)[:1],
+                severity=CheckSeverity.ERROR,
             )
 
-        df_to_check = list(data.values())[0]  # Check sur le premier
-        results = checker.run(df_to_check)
-
-        return all(r.passed for r in results.checks)
+        # Lance les vérifications
+        results = checker.run()
+        return all(r.passed for r in results)
 
     def _aggregate_daily_by_product(self, df: DataFrame) -> DataFrame:
         """Agrégation journalière par produit."""
@@ -192,5 +189,8 @@ class AggregateSalesJob(BaseSparkJob):
 
 
 if __name__ == "__main__":
-    job = AggregateSalesJob()
+    job = AggregateSalesJob(
+        job_name="aggregate_sales",
+        domain="sales",
+    )
     job.run()

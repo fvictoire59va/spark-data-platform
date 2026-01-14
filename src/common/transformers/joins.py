@@ -104,7 +104,7 @@ class JoinSpec:
     right_alias: str | None = None
     drop_duplicates: bool = True  # Supprime les colonnes dupliquées
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Convertit le type si nécessaire."""
         if isinstance(self.join_type, str):
             self.join_type = JoinType(self.join_type.lower())
@@ -327,7 +327,12 @@ class MultiJoinTransformer(BaseTransformer):
         result = df
 
         for i, join_spec in enumerate(self.joins, 1):
-            logger.debug(f"Jointure {i}/{len(self.joins)}: {join_spec.join_type.value}")
+            join_type_value = (
+                join_spec.join_type.value
+                if isinstance(join_spec.join_type, JoinType)
+                else join_spec.join_type
+            )
+            logger.debug(f"Jointure {i}/{len(self.joins)}: {join_type_value}")
 
             transformer = JoinTransformer(
                 right_df=join_spec.right_df,

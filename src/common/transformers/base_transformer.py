@@ -43,7 +43,7 @@ class BaseTransformer(ABC):
 class TransformationPipeline:
     """Pipeline de transformations chaînées."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._transformers: list[BaseTransformer] = []
 
     def add(self, transformer: BaseTransformer) -> TransformationPipeline:

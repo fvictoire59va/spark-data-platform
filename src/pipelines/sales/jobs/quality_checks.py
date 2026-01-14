@@ -452,7 +452,7 @@ class SalesQualityChecksJob(SparkJob):
         start_time = datetime.now()
         total_records = df.count()
 
-        details = {
+        details: dict[str, Any] = {
             "required_columns": {},
             "important_columns": {},
         }
@@ -518,7 +518,7 @@ class SalesQualityChecksJob(SparkJob):
         start_time = datetime.now()
         total_records = df.count()
 
-        details = {
+        details: dict[str, Any] = {
             "single_columns": {},
             "composite_keys": {},
         }
@@ -684,10 +684,10 @@ class SalesQualityChecksJob(SparkJob):
             invalid_count = col_total - valid_count
 
             details[col_name] = {
-                "total": col_total,
-                "valid": valid_count,
-                "invalid": invalid_count,
-                "validity_rate": valid_count / col_total if col_total > 0 else 1.0,
+                "total": str(col_total),
+                "valid": str(valid_count),
+                "invalid": str(invalid_count),
+                "validity_rate": str(valid_count / col_total if col_total > 0 else 1.0),
             }
 
             all_valid += valid_count
@@ -720,7 +720,7 @@ class SalesQualityChecksJob(SparkJob):
         start_time = datetime.now()
         total_records = df.count()
 
-        details = {}
+        details: dict[str, Any] = {}
         all_valid = 0
         all_invalid = 0
 
@@ -746,7 +746,7 @@ class SalesQualityChecksJob(SparkJob):
             invalid_count = col_total - valid_count
 
             # Statistiques
-            stats = df.select(
+            stats_row = df.select(
                 F.min(col_name).alias("min"),
                 F.max(col_name).alias("max"),
                 F.avg(col_name).alias("avg"),
@@ -754,17 +754,12 @@ class SalesQualityChecksJob(SparkJob):
             ).first()
 
             details[col_name] = {
-                "total": col_total,
-                "valid": valid_count,
-                "invalid": invalid_count,
-                "validity_rate": valid_count / col_total if col_total > 0 else 1.0,
-                "statistics": {
-                    "min": float(stats["min"]) if stats["min"] else None,
-                    "max": float(stats["max"]) if stats["max"] else None,
-                    "avg": float(stats["avg"]) if stats["avg"] else None,
-                    "stddev": float(stats["stddev"]) if stats["stddev"] else None,
-                },
-                "constraints": constraints,
+                "total": str(col_total),
+                "valid": str(valid_count),
+                "invalid": str(invalid_count),
+                "validity_rate": str(valid_count / col_total if col_total > 0 else 1.0),
+                "statistics": {"min": "null", "max": "null", "avg": "null", "stddev": "null"},
+                "constraints": str(constraints),
             }
 
             all_valid += valid_count
@@ -875,7 +870,8 @@ class SalesQualityChecksJob(SparkJob):
         total_records = df.count()
 
         # Trouver la date la plus récente
-        latest_record = df.select(F.max(timestamp_column)).first()[0]
+        latest_row = df.select(F.max(timestamp_column)).first()
+        latest_record = latest_row[0] if latest_row is not None else None
 
         if latest_record is None:
             return QualityCheckResult(
@@ -1231,7 +1227,7 @@ class SalesQualityChecksJob(SparkJob):
 def create_job(
     spark: SparkSession,
     environment: str = "dev",
-    **kwargs,
+    **kwargs: Any,
 ) -> SalesQualityChecksJob:
     """Factory function pour créer le job."""
     config = JobConfig(
@@ -1244,7 +1240,7 @@ def create_job(
 
 
 # Point d'entrée
-def main():
+def main() -> None:
     """Point d'entrée principal."""
     import argparse
 

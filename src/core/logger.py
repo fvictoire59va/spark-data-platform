@@ -56,7 +56,7 @@ def get_logger(name: str) -> structlog.BoundLogger:
         Logger structuré
     """
     setup_logging()
-    return structlog.get_logger(name)
+    return structlog.get_logger(name)  # type: ignore[no-any-return]
 
 
 class SparkJobLogger:
@@ -70,7 +70,7 @@ class SparkJobLogger:
 
     def _bind_context(self) -> None:
         """Ajoute le contexte du job au logger."""
-        self.logger = self.logger.bind(
+        self.logger = self.logger.bind(  # type: ignore[assignment]
             job_name=self.job_name,
             pipeline=self.pipeline,
         )

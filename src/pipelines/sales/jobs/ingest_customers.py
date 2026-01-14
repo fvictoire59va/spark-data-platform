@@ -78,7 +78,10 @@ class IngestCustomersJob(SparkJob):
 
         # Vérifier si un chemin spécifique est fourni dans les paramètres
         if "input_path" in self.config.parameters:
-            return self.config.parameters["input_path"]
+            input_path = self.config.parameters["input_path"]
+            if isinstance(input_path, str):
+                return input_path
+            return str(input_path)
 
         # Chemin par défaut
         return f"{base_path}/customers"
@@ -153,7 +156,9 @@ class IngestCustomersJob(SparkJob):
         else:
             raise ValueError(f"Format de fichier non supporté: {file_format}")
 
-        df = reader.read()
+        df_result = reader.read()
+        assert isinstance(df_result, DataFrame), f"Expected DataFrame, got {type(df_result)}"
+        df = df_result
 
         # Log des statistiques d'extraction
         record_count = df.count()
@@ -610,7 +615,7 @@ def create_job(
 
 
 # Point d'entrée pour spark-submit
-def main():
+def main() -> None:
     """Point d'entrée principal."""
     import argparse
 
