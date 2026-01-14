@@ -4,7 +4,7 @@ from __future__ import annotations
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import yaml
 from pydantic import Field, field_validator

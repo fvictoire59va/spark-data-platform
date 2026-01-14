@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from src.common.quality import CheckSeverity, DataQualityChecker, QualityCheck
+from src.common.quality import CheckSeverity, DataQualityChecker
 from src.common.writers import DeltaWriter
 from src.core.base_job import BaseSparkJob
 from src.core.logger import get_logger
@@ -104,7 +104,7 @@ class AggregateSalesJob(BaseSparkJob):  # type: ignore[override]
         checker = DataQualityChecker(df_to_check)
 
         # Vérifie que chaque table n'est pas vide
-        for table_name, df in data.items():
+        for _table_name, df in data.items():
             checker.check_not_null(
                 columns=list(df.columns)[:1],
                 severity=CheckSeverity.ERROR,

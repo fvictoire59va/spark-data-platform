@@ -745,14 +745,6 @@ class SalesQualityChecksJob(SparkJob):
             valid_count = df.filter(combined_condition).count()
             invalid_count = col_total - valid_count
 
-            # Statistiques
-            stats_row = df.select(
-                F.min(col_name).alias("min"),
-                F.max(col_name).alias("max"),
-                F.avg(col_name).alias("avg"),
-                F.stddev(col_name).alias("stddev"),
-            ).first()
-
             details[col_name] = {
                 "total": str(col_total),
                 "valid": str(valid_count),
