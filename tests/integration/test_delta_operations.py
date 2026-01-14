@@ -91,9 +91,7 @@ class TestDeltaWrite:
         assert result.count() == customers_df.count()
 
         # Vérifier qu'on peut filtrer efficacement par partition
-        france_df = (
-            spark.read.format("delta").load(table_path).filter(F.col("country") == "FR")
-        )
+        france_df = spark.read.format("delta").load(table_path).filter(F.col("country") == "FR")
         expected_count = customers_df.filter(F.col("country") == "FR").count()
         assert france_df.count() == expected_count
 
@@ -190,9 +188,7 @@ class TestDeltaRead:
         customers_df.write.format("delta").mode("overwrite").save(table_path)
 
         result = (
-            spark.read.format("delta")
-            .load(table_path)
-            .select("customer_id", "email", "first_name")
+            spark.read.format("delta").load(table_path).select("customer_id", "email", "first_name")
         )
 
         assert result.columns == ["customer_id", "email", "first_name"]
@@ -208,9 +204,7 @@ class TestDeltaRead:
         table_path = f"{delta_path}/read_filter"
         customers_df.write.format("delta").mode("overwrite").save(table_path)
 
-        result = (
-            spark.read.format("delta").load(table_path).filter(F.col("is_active") is True)
-        )
+        result = spark.read.format("delta").load(table_path).filter(F.col("is_active") is True)
 
         expected = customers_df.filter(F.col("is_active") is True).count()
         assert result.count() == expected
@@ -294,9 +288,7 @@ class TestDeltaTimeTravel:
 
         # Lire au timestamp de création
         old_data = (
-            spark.read.format("delta")
-            .option("timestampAsOf", creation_timestamp)
-            .load(table_path)
+            spark.read.format("delta").option("timestampAsOf", creation_timestamp).load(table_path)
         )
 
         assert old_data.first()["value"] == 100
@@ -888,9 +880,7 @@ class TestDeltaACID:
 
         # Tenter une écriture qui échoue (schéma incompatible sans mergeSchema)
         try:
-            bad_df = spark.createDataFrame(
-                [{"id": "not_an_int", "value": 200, "extra": "col"}]
-            )
+            bad_df = spark.createDataFrame([{"id": "not_an_int", "value": 200, "extra": "col"}])
             bad_df.write.format("delta").mode("append").save(table_path)
         except Exception:
             pass
