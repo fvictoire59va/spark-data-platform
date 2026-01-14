@@ -79,7 +79,16 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
+      - name: Setup Spark with Delta Lake
+        run: |
+          poetry run pip install findspark pyspark
+          poetry run python -c "import findspark; findspark.init()"
+
       - name: Run tests (Unit + Integration)
+        env:
+          SPARK_LOCAL_IP: 127.0.0.1
+          PYSPARK_PYTHON: python3
+          PYSPARK_SUBMIT_ARGS: "--packages io.delta:delta-spark_2.13:3.0.0 pyspark-shell"
         run: |
           poetry run pytest tests/ \
             -v \

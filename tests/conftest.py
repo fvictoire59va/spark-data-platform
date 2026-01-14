@@ -30,6 +30,9 @@ def spark() -> Generator[SparkSession, None, None]:
         .config("spark.default.parallelism", "2")
         .config("spark.ui.enabled", "false")
         .config("spark.driver.bindAddress", "127.0.0.1")
+        .config("spark.sql.warehouse.dir", "/tmp/spark-warehouse")
+        .config("spark.driver.memory", "2g")
+        .config("spark.local.dir", "/tmp/spark-local")
         .getOrCreate()
     )
 
