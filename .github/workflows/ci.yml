@@ -96,7 +96,7 @@ jobs:
           fail_ci_if_error: true
 
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: unit-test-results
@@ -154,7 +154,7 @@ jobs:
             --junitxml=test-results/integration-tests.xml
 
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: integration-test-results
@@ -182,7 +182,7 @@ jobs:
         run: poetry build
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
