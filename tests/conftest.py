@@ -39,7 +39,7 @@ def spark() -> Generator[SparkSession, None, None]:
     spark = (
         SparkSession.builder.master("local[2]")
         .appName("pytest-spark")
-        .config("spark.jars.packages", "io.delta:delta-spark_2.13:3.2.0")
+        .config("spark.jars.packages", "io.delta:delta-spark_2.12:3.2.0")
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(
             "spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog"

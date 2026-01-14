@@ -34,8 +34,8 @@ RUN curl -fsSL "https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spa
     && chmod -R 755 ${SPARK_HOME}
 
 # Installation des JARs supplémentaires (Delta Lake, AWS, etc.)
-RUN curl -fsSL "https://repo1.maven.org/maven2/io/delta/delta-spark_2.13/${DELTA_VERSION}/delta-spark_2.13-${DELTA_VERSION}.jar" \
-    -o ${SPARK_HOME}/jars/delta-spark_2.13-${DELTA_VERSION}.jar \
+RUN curl -fsSL "https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/${DELTA_VERSION}/delta-spark_2.12-${DELTA_VERSION}.jar" \
+    -o ${SPARK_HOME}/jars/delta-spark_2.12-${DELTA_VERSION}.jar \
     && curl -fsSL "https://repo1.maven.org/maven2/io/delta/delta-storage/${DELTA_VERSION}/delta-storage-${DELTA_VERSION}.jar" \
     -o ${SPARK_HOME}/jars/delta-storage-${DELTA_VERSION}.jar
 
