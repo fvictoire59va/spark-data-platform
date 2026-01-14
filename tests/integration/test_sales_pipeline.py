@@ -133,7 +133,6 @@ class TestSalesPipelineIntegration:
         self,
         spark: SparkSession,
         sample_source_data,
-        integration_paths,
         tmp_path,
     ):
         """Vérifie la traçabilité des données à travers les couches."""
