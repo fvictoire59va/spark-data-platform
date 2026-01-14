@@ -204,9 +204,9 @@ class TestDeltaRead:
         table_path = f"{delta_path}/read_filter"
         customers_df.write.format("delta").mode("overwrite").save(table_path)
 
-        result = spark.read.format("delta").load(table_path).filter(F.col("is_active") == True)
+        result = spark.read.format("delta").load(table_path).filter(F.col("is_active") is True)
 
-        expected = customers_df.filter(F.col("is_active") == True).count()
+        expected = customers_df.filter(F.col("is_active") is True).count()
         assert result.count() == expected
 
 
@@ -906,7 +906,7 @@ class TestDeltaAdvanced:
         delta_path: str,
     ):
         """Test colonnes générées.
-        
+
         Skipped: Generated columns require Delta Lake with additional catalog support.
         """
         table_path = f"{delta_path}/generated_columns"
