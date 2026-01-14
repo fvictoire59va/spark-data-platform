@@ -10,7 +10,7 @@ packages = [{include = "src"}]
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 pyspark = "^3.5.0"
-delta-spark = "^3.0.0"
+delta-spark = "^3.2.0"
 pydantic = "^2.5.0"
 pydantic-settings = "^2.1.0"
 PyYAML = "^6.0"
