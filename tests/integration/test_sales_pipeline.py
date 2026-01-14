@@ -134,21 +134,26 @@ class TestSalesPipelineIntegration:
         spark: SparkSession,
         sample_source_data,
         integration_paths,
+        tmp_path,
     ):
         """Vérifie la traçabilité des données à travers les couches."""
+        # Use unique paths to avoid schema conflicts between tests
+        bronze_path = str(tmp_path / "bronze")
+        silver_path = str(tmp_path / "silver")
+
         # Bronze
-        bronze_df = sample_source_data.withColumn("_ingested_at", F.current_timestamp()).withColumn(
-            "_source", F.lit("test_source")
+        bronze_df = (
+            sample_source_data.withColumn("order_date", F.to_date("order_date"))
+            .withColumn("_ingested_at", F.current_timestamp())
+            .withColumn("_source", F.lit("test_source"))
         )
 
-        bronze_df.write.format("delta").mode("overwrite").option("mergeSchema", "true").save(
-            integration_paths["bronze"]
-        )
+        bronze_df.write.format("delta").mode("overwrite").save(bronze_path)
 
         # Silver
         silver_df = (
             spark.read.format("delta")
-            .load(integration_paths["bronze"])
+            .load(bronze_path)
             .withColumn("_processed_at", F.current_timestamp())
             .withColumn(
                 "total_amount",
@@ -156,12 +161,10 @@ class TestSalesPipelineIntegration:
             )
         )
 
-        silver_df.write.format("delta").mode("overwrite").option("mergeSchema", "true").save(
-            integration_paths["silver"]
-        )
+        silver_df.write.format("delta").mode("overwrite").save(silver_path)
 
         # Vérifier les métadonnées
-        result = spark.read.format("delta").load(integration_paths["silver"])
+        result = spark.read.format("delta").load(silver_path)
 
         assert "_ingested_at" in result.columns
         assert "_source" in result.columns
@@ -170,36 +173,38 @@ class TestSalesPipelineIntegration:
     def test_incremental_processing(
         self,
         spark: SparkSession,
-        integration_paths,
+        tmp_path,
     ):
         """Test du traitement incrémental."""
+        bronze_path = str(tmp_path / "bronze_incremental")
+
         # Batch 1
         batch1 = spark.createDataFrame(
             [
                 ("ORD001", "CUST001", "2024-01-15", "PROD001", 1, 29.99),
             ],
-            ["order_id", "customer_id", "order_date", "product_id", "quantity", "price"],
+            ["order_id", "customer_id", "order_date", "product_id", "quantity", "unit_price"],
         )
 
-        batch1.write.format("delta").mode("overwrite").save(integration_paths["bronze"])
+        batch1.write.format("delta").mode("overwrite").save(bronze_path)
 
         # Batch 2 (append)
         batch2 = spark.createDataFrame(
             [
                 ("ORD002", "CUST002", "2024-01-16", "PROD002", 2, 49.99),
             ],
-            ["order_id", "customer_id", "order_date", "product_id", "quantity", "price"],
+            ["order_id", "customer_id", "order_date", "product_id", "quantity", "unit_price"],
         )
 
-        batch2.write.format("delta").mode("append").save(integration_paths["bronze"])
+        batch2.write.format("delta").mode("append").save(bronze_path)
 
         # Vérifier le total
-        result = spark.read.format("delta").load(integration_paths["bronze"])
+        result = spark.read.format("delta").load(bronze_path)
         assert result.count() == 2
 
         # Vérifier l'historique Delta
         from delta.tables import DeltaTable
 
-        dt = DeltaTable.forPath(spark, integration_paths["bronze"])
+        dt = DeltaTable.forPath(spark, bronze_path)
         history = dt.history()
         assert history.count() >= 2
