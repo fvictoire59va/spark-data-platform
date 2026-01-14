@@ -20,16 +20,29 @@ def spark() -> Generator[SparkSession, None, None]:
     Crée une SparkSession pour les tests.
 
     Scope session pour réutiliser la même session.
+    Skips if Java is not available (e.g., on Windows dev machines).
     """
+    # Check if Java is available
+    java_home = os.environ.get("JAVA_HOME")
+    if not java_home or not os.path.exists(java_home):
+        pytest.skip("Java/JAVA_HOME not properly configured. Tests should run in CI environment.")
+
     # Use system temp directory for cross-platform compatibility
     temp_dir = tempfile.gettempdir()
     warehouse_dir = os.path.join(temp_dir, "spark-warehouse")
     local_dir = os.path.join(temp_dir, "spark-local")
+    jars_dir = os.path.join(temp_dir, "spark-jars")
+
+    # Create directories if they don't exist
+    os.makedirs(warehouse_dir, exist_ok=True)
+    os.makedirs(local_dir, exist_ok=True)
+    os.makedirs(jars_dir, exist_ok=True)
 
     spark = (
         SparkSession.builder.master("local[2]")
         .appName("pytest-spark")
         .config("spark.jars.packages", "io.delta:delta-spark_2.13:3.2.0")
+        .config("spark.jars.downloadDir", jars_dir)
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(
             "spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog"
