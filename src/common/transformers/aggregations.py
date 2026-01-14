@@ -192,7 +192,11 @@ class AggregationTransformer(BaseTransformer):
             AggregationType.PERCENTILE: lambda: F.percentile_approx(col, spec.percentile_value),
         }
 
-        agg_type = spec.agg_type if isinstance(spec.agg_type, AggregationType) else AggregationType(spec.agg_type)
+        agg_type = (
+            spec.agg_type
+            if isinstance(spec.agg_type, AggregationType)
+            else AggregationType(spec.agg_type)
+        )
         agg_func = agg_map.get(agg_type)
         if not agg_func:
             raise ValueError(f"Type d'agrégation non supporté: {agg_type}")
@@ -625,7 +629,11 @@ class RollupTransformer(BaseTransformer):
             AggregationType.MAX: F.max(col),
         }
 
-        agg_type = spec.agg_type if isinstance(spec.agg_type, AggregationType) else AggregationType(spec.agg_type)
+        agg_type = (
+            spec.agg_type
+            if isinstance(spec.agg_type, AggregationType)
+            else AggregationType(spec.agg_type)
+        )
         agg_expr = agg_map.get(agg_type)
         if not agg_expr:
             raise ValueError(f"Type non supporté pour rollup: {agg_type}")
@@ -700,7 +708,11 @@ class CubeTransformer(BaseTransformer):
             AggregationType.MAX: F.max(col),
         }
 
-        agg_type = spec.agg_type if isinstance(spec.agg_type, AggregationType) else AggregationType(spec.agg_type)
+        agg_type = (
+            spec.agg_type
+            if isinstance(spec.agg_type, AggregationType)
+            else AggregationType(spec.agg_type)
+        )
         agg_expr = agg_map.get(agg_type)
         if not agg_expr:
             raise ValueError(f"Type non supporté pour cube: {agg_type}")

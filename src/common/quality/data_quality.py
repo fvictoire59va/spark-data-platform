@@ -1,4 +1,5 @@
 """Module de contrôle qualité des données."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -48,7 +49,12 @@ class QualityResult:
 class DataQualityChecker:
     """Gestionnaire des contrôles qualité."""
 
-    def __init__(self, df: DataFrame):
+    def __init__(self, df: DataFrame) -> None:
+        """Initialise le gestionnaire avec un DataFrame.
+
+        Args:
+            df: Le DataFrame à contrôler.
+        """
         self.df = df
         self._checks: list[QualityCheck] = []
         self._results: list[QualityResult] = []
@@ -60,13 +66,17 @@ class DataQualityChecker:
     ) -> DataQualityChecker:
         """Vérifie que les colonnes ne sont pas nulles."""
         for col in columns:
-            def check_fn(df: DataFrame, c: str = col) -> bool:
-                return df.filter(F.col(c).isNull()).count() == 0
+
+            def make_check_fn(c: str) -> Callable[[DataFrame], bool]:
+                def check_fn(df: DataFrame) -> bool:
+                    return bool(df.filter(F.col(c).isNull()).count() == 0)
+
+                return check_fn
 
             self._checks.append(
                 QualityCheck(
                     name=f"not_null_{col}",
-                    check_fn=check_fn,
+                    check_fn=make_check_fn(col),
                     severity=severity,
                     description=f"Colonne {col} ne doit pas contenir de NULL",
                 )
@@ -84,7 +94,7 @@ class DataQualityChecker:
         def check_fn(df: DataFrame) -> bool:
             total = df.count()
             distinct = df.select(*columns).distinct().count()
-            return total == distinct
+            return bool(total == distinct)
 
         self._checks.append(
             QualityCheck(
@@ -106,7 +116,7 @@ class DataQualityChecker:
 
         def check_fn(df: DataFrame) -> bool:
             invalid = df.filter(~F.col(column).isin(list(allowed_values))).count()
-            return invalid == 0
+            return bool(invalid == 0)
 
         self._checks.append(
             QualityCheck(
@@ -138,7 +148,7 @@ class DataQualityChecker:
                 combined = conditions[0]
                 for cond in conditions[1:]:
                     combined = combined | cond
-                return df.filter(combined).count() == 0
+                return bool(df.filter(combined).count() == 0)
             return True
 
         self._checks.append(

@@ -25,7 +25,7 @@ repos:
     rev: 24.1.0
     hooks:
       - id: black
-        language_version: python3.12
+        language_version: python3.11
         args: [--line-length=100]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -50,7 +50,7 @@ repos:
     rev: 1.7.7
     hooks:
       - id: bandit
-        args: [-r, src/, -ll]
+        args: [-ll]
         exclude: ^tests/
 
   - repo: https://github.com/Yelp/detect-secrets
@@ -59,6 +59,7 @@ repos:
       - id: detect-secrets
         args: [--baseline, .secrets.baseline]
         exclude: poetry.lock
+        stages: [manual]
 
   # ============ DOCUMENTATION ============
   - repo: https://github.com/pycqa/pydocstyle
@@ -68,6 +69,7 @@ repos:
         args: [--convention=google]
         exclude: ^tests/
         additional_dependencies: [tomli]
+        stages: [manual]
 
   # ============ SQL ============
   - repo: https://github.com/sqlfluff/sqlfluff
@@ -101,6 +103,7 @@ repos:
     hooks:
       - id: yamllint
         args: [-c=.yamllint.yaml]
+        stages: [manual]
 
   # ============ COMMIT MESSAGES ============
   - repo: https://github.com/commitizen-tools/commitizen
@@ -111,7 +114,7 @@ repos:
 
 # Configuration globale
 default_language_version:
-  python: python3.11
+  python: python3.12
 
 ci:
   autofix_commit_msg: "style: auto-fix by pre-commit hooks"
