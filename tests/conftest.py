@@ -1,7 +1,9 @@
 """Configuration globale des tests pytest."""
+
 from __future__ import annotations
 
 import os
+import tempfile
 from collections.abc import Generator
 from typing import TYPE_CHECKING
 
@@ -19,9 +21,15 @@ def spark() -> Generator[SparkSession, None, None]:
 
     Scope session pour réutiliser la même session.
     """
+    # Use system temp directory for cross-platform compatibility
+    temp_dir = tempfile.gettempdir()
+    warehouse_dir = os.path.join(temp_dir, "spark-warehouse")
+    local_dir = os.path.join(temp_dir, "spark-local")
+
     spark = (
         SparkSession.builder.master("local[2]")
         .appName("pytest-spark")
+        .config("spark.jars.packages", "io.delta:delta-spark_2.13:3.2.0")
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(
             "spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog"
@@ -30,9 +38,9 @@ def spark() -> Generator[SparkSession, None, None]:
         .config("spark.default.parallelism", "2")
         .config("spark.ui.enabled", "false")
         .config("spark.driver.bindAddress", "127.0.0.1")
-        .config("spark.sql.warehouse.dir", "/tmp/spark-warehouse")
+        .config("spark.sql.warehouse.dir", warehouse_dir)
         .config("spark.driver.memory", "2g")
-        .config("spark.local.dir", "/tmp/spark-local")
+        .config("spark.local.dir", local_dir)
         .getOrCreate()
     )
 
