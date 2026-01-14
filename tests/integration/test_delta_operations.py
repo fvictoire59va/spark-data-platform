@@ -976,7 +976,7 @@ class TestDeltaAdvanced:
         delta_path: str,
     ):
         """Test clonage de table (shallow et deep).
-        
+
         Skipped: SHALLOW/DEEP CLONE syntax requires specific Delta Lake/Spark version.
         """
         source_path = f"{delta_path}/clone_source"
