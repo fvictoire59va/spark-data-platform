@@ -15,6 +15,7 @@ class SparkPlatformError(Exception):
 
 class ConfigurationError(SparkPlatformError):
     """Erreur de configuration."""
+
     pass
 
 
@@ -49,14 +50,17 @@ class SchemaValidationError(SparkPlatformError):
 
 class DataSourceError(SparkPlatformError):
     """Erreur lors de l'accès à une source de données."""
+
     pass
 
 
 class TransformationError(SparkPlatformError):
     """Erreur lors d'une transformation."""
+
     pass
 
 
 class WriteError(SparkPlatformError):
     """Erreur lors de l'écriture des données."""
+
     pass

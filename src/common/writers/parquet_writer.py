@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from pyspark.sql import DataFrame
 
-from src.common.writers.base_writer import BaseWriter, WriteMode
+from src.common.writers.base_writer import BaseWriter
 from src.core.exceptions import WriteError
 from src.core.logger import get_logger
 
@@ -30,7 +30,7 @@ class ParquetWriter(BaseWriter):
         """
         super().__init__(spark, config)
         self._validate_config(["path"])
-        
+
         if "partition_by" in config:
             self.with_partitions(config["partition_by"])
 
@@ -48,18 +48,11 @@ class ParquetWriter(BaseWriter):
             path = self.config["path"]
             compression = self.config.get("compression", "snappy")
 
-            writer = (
-                df.write
-                .format("parquet")
-                .option("compression", compression)
-            )
+            writer = df.write.format("parquet").option("compression", compression)
 
             # Max records par fichier
             if "max_records_per_file" in self.config:
-                writer = writer.option(
-                    "maxRecordsPerFile",
-                    self.config["max_records_per_file"]
-                )
+                writer = writer.option("maxRecordsPerFile", self.config["max_records_per_file"])
 
             # Partitionnement
             if self._partition_by:
@@ -109,9 +102,8 @@ class ParquetWriter(BaseWriter):
             )
             self._partition_by = ["year", "month", "day"]
         elif granularity == "month":
-            df = (
-                df.withColumn("year", F.year(date_column))
-                .withColumn("month", F.month(date_column))
+            df = df.withColumn("year", F.year(date_column)).withColumn(
+                "month", F.month(date_column)
             )
             self._partition_by = ["year", "month"]
         else:  # year

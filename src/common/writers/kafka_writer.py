@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from pyspark.sql import DataFrame, functions as F
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 
 from src.common.writers.base_writer import BaseWriter
 from src.core.exceptions import WriteError
@@ -47,8 +48,7 @@ class KafkaWriter(BaseWriter):
             df_kafka = self._prepare_dataframe(df)
 
             (
-                df_kafka.write
-                .format("kafka")
+                df_kafka.write.format("kafka")
                 .option("kafka.bootstrap.servers", self.config["bootstrap_servers"])
                 .option("topic", self.config["topic"])
                 .save()
@@ -94,8 +94,7 @@ class KafkaWriter(BaseWriter):
         df_kafka = self._prepare_dataframe(df)
 
         writer = (
-            df_kafka.writeStream
-            .format("kafka")
+            df_kafka.writeStream.format("kafka")
             .option("kafka.bootstrap.servers", self.config["bootstrap_servers"])
             .option("topic", self.config["topic"])
             .option("checkpointLocation", self.config["checkpoint_location"])
@@ -146,7 +145,7 @@ class KafkaWriter(BaseWriter):
         # Construire value (JSON de toutes les colonnes ou sélection)
         value_columns = self.config.get("value_columns", df.columns)
         value_columns = [c for c in value_columns if c in df.columns]
-        
+
         value_expr = F.to_json(F.struct(*[F.col(c) for c in value_columns]))
 
         return df.select(

@@ -29,16 +29,16 @@ class BaseSparkJob(ABC):
         self.domain = domain
         self.settings = get_settings()
         self.environment = environment or self.settings.environment
-        
+
         # Configuration du pipeline
         self.config = PipelineConfig(job_name, domain, self.environment)
-        
+
         # Logger
         self.logger = SparkJobLogger(job_name, domain)
-        
+
         # Session Spark
         self._spark: SparkSession | None = None
-        
+
         # Métriques
         self._start_time: float = 0
         self._records_processed: int = 0
@@ -106,44 +106,44 @@ class BaseSparkJob(ABC):
             Dictionnaire avec les métriques du job
         """
         self._start_time = time.time()
-        
+
         try:
             self.logger.job_started(
                 environment=self.environment.value,
                 config=self.config._config,
             )
-            
+
             # Extract
             self.logger.step_completed("extract_start")
             df = self.extract()
             self.logger.step_completed("extract", count=df.count())
-            
+
             # Transform
             df = self.transform(df)
             self.logger.step_completed("transform", count=df.count())
-            
+
             # Validate
             df = self.validate(df)
             self._records_processed = df.count()
             self.logger.step_completed("validate", count=self._records_processed)
-            
+
             # Load
             self.load(df)
             self.logger.step_completed("load")
-            
+
             duration = time.time() - self._start_time
-            
+
             self.logger.job_completed(
                 records_processed=self._records_processed,
                 duration_seconds=duration,
             )
-            
+
             return {
                 "status": "SUCCESS",
                 "records_processed": self._records_processed,
                 "duration_seconds": round(duration, 2),
             }
-            
+
         except Exception as e:
             self.logger.job_failed(e)
             raise SparkPlatformError(

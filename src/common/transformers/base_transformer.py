@@ -46,7 +46,7 @@ class TransformationPipeline:
     def __init__(self):
         self._transformers: list[BaseTransformer] = []
 
-    def add(self, transformer: BaseTransformer) -> "TransformationPipeline":
+    def add(self, transformer: BaseTransformer) -> TransformationPipeline:
         """
         Ajoute un transformer au pipeline.
 
@@ -76,9 +76,7 @@ class TransformationPipeline:
             result = transformer.transform(result)
             logger.debug(f"Transformer {transformer.name} appliqué")
 
-        logger.info(
-            f"Pipeline exécuté avec {len(self._transformers)} transformations"
-        )
+        logger.info(f"Pipeline exécuté avec {len(self._transformers)} transformations")
 
         return result
 

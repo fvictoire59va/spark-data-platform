@@ -3,13 +3,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, date, timedelta
-from decimal import Decimal
-from typing import Any
 import random
 import string
 import uuid
-
+from datetime import date, datetime, timedelta
+from typing import Any
 
 # =============================================================================
 # DONNÉES CLIENTS
@@ -550,14 +548,50 @@ SAMPLE_ORDERS_VALID = [
 
 SAMPLE_ORDER_ITEMS = [
     # Order 1
-    {"order_id": "ORD001", "product_id": "PROD001", "quantity": 1, "unit_price": 1299.99, "line_total": 1299.99},
-    {"order_id": "ORD001", "product_id": "PROD002", "quantity": 1, "unit_price": 49.99, "line_total": 49.99},
+    {
+        "order_id": "ORD001",
+        "product_id": "PROD001",
+        "quantity": 1,
+        "unit_price": 1299.99,
+        "line_total": 1299.99,
+    },
+    {
+        "order_id": "ORD001",
+        "product_id": "PROD002",
+        "quantity": 1,
+        "unit_price": 49.99,
+        "line_total": 49.99,
+    },
     # Order 2
-    {"order_id": "ORD002", "product_id": "PROD002", "quantity": 2, "unit_price": 49.99, "line_total": 99.98},
-    {"order_id": "ORD002", "product_id": "PROD004", "quantity": 1, "unit_price": 79.99, "line_total": 79.99},
-    {"order_id": "ORD002", "product_id": "PROD006", "quantity": 1, "unit_price": 20.00, "line_total": 20.00},
+    {
+        "order_id": "ORD002",
+        "product_id": "PROD002",
+        "quantity": 2,
+        "unit_price": 49.99,
+        "line_total": 99.98,
+    },
+    {
+        "order_id": "ORD002",
+        "product_id": "PROD004",
+        "quantity": 1,
+        "unit_price": 79.99,
+        "line_total": 79.99,
+    },
+    {
+        "order_id": "ORD002",
+        "product_id": "PROD006",
+        "quantity": 1,
+        "unit_price": 20.00,
+        "line_total": 20.00,
+    },
     # Order 3
-    {"order_id": "ORD003", "product_id": "PROD005", "quantity": 1, "unit_price": 599.99, "line_total": 599.99},
+    {
+        "order_id": "ORD003",
+        "product_id": "PROD005",
+        "quantity": 1,
+        "unit_price": 599.99,
+        "line_total": 599.99,
+    },
 ]
 
 
@@ -565,44 +599,87 @@ SAMPLE_ORDER_ITEMS = [
 # GÉNÉRATEURS DE DONNÉES
 # =============================================================================
 
+
 class DataGenerator:
     """Générateur de données de test."""
-    
-    FIRST_NAMES = ["John", "Jane", "Bob", "Alice", "Charlie", "Diana", "Eve", "Frank", "Grace", "Henry"]
-    LAST_NAMES = ["Doe", "Smith", "Wilson", "Martin", "Brown", "Taylor", "Anderson", "Thomas", "Jackson", "White"]
-    CITIES = ["Paris", "Lyon", "Marseille", "Toulouse", "Nice", "Nantes", "Strasbourg", "Bordeaux", "Lille", "Rennes"]
+
+    FIRST_NAMES = [
+        "John",
+        "Jane",
+        "Bob",
+        "Alice",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+    ]
+    LAST_NAMES = [
+        "Doe",
+        "Smith",
+        "Wilson",
+        "Martin",
+        "Brown",
+        "Taylor",
+        "Anderson",
+        "Thomas",
+        "Jackson",
+        "White",
+    ]
+    CITIES = [
+        "Paris",
+        "Lyon",
+        "Marseille",
+        "Toulouse",
+        "Nice",
+        "Nantes",
+        "Strasbourg",
+        "Bordeaux",
+        "Lille",
+        "Rennes",
+    ]
     COUNTRIES = ["FR", "BE", "CH", "DE", "ES", "IT", "UK", "US", "CA", "JP"]
     SEGMENTS = ["STANDARD", "PREMIUM", "VIP", "ENTERPRISE"]
-    CATEGORIES = ["Electronics", "Furniture", "Clothing", "Food", "Books", "Sports", "Beauty", "Home"]
+    CATEGORIES = [
+        "Electronics",
+        "Furniture",
+        "Clothing",
+        "Food",
+        "Books",
+        "Sports",
+        "Beauty",
+        "Home",
+    ]
     PAYMENT_METHODS = ["CREDIT_CARD", "DEBIT_CARD", "PAYPAL", "BANK_TRANSFER", "CASH"]
     CHANNELS = ["WEB", "MOBILE", "STORE", "PHONE"]
-    
+
     @classmethod
     def generate_customer_id(cls) -> str:
         """Génère un ID client unique."""
         return f"CUST{uuid.uuid4().hex[:8].upper()}"
-    
+
     @classmethod
     def generate_product_id(cls) -> str:
         """Génère un ID produit unique."""
         return f"PROD{uuid.uuid4().hex[:8].upper()}"
-    
+
     @classmethod
     def generate_transaction_id(cls) -> str:
         """Génère un ID transaction unique."""
         return f"TXN{uuid.uuid4().hex[:12].upper()}"
-    
+
     @classmethod
     def generate_order_id(cls) -> str:
         """Génère un ID commande unique."""
         return f"ORD{uuid.uuid4().hex[:8].upper()}"
-    
+
     @classmethod
     def generate_email(cls, first_name: str, last_name: str) -> str:
         """Génère un email à partir du nom."""
         domain = random.choice(["example.com", "test.com", "mail.com", "company.org"])
         return f"{first_name.lower()}.{last_name.lower()}@{domain}"
-    
+
     @classmethod
     def generate_phone(cls, country: str = "FR") -> str:
         """Génère un numéro de téléphone."""
@@ -610,7 +687,7 @@ class DataGenerator:
         prefix = country_codes.get(country, "+33")
         number = "".join(random.choices(string.digits, k=9))
         return f"{prefix}{number}"
-    
+
     @classmethod
     def generate_date(
         cls,
@@ -624,7 +701,7 @@ class DataGenerator:
         random_days = random.randint(0, delta)
         result = start + timedelta(days=random_days)
         return result.strftime("%Y-%m-%d")
-    
+
     @classmethod
     def generate_datetime(
         cls,
@@ -638,14 +715,14 @@ class DataGenerator:
         random_seconds = random.randint(0, int(delta))
         result = start + timedelta(seconds=random_seconds)
         return result.strftime("%Y-%m-%d %H:%M:%S")
-    
+
     @classmethod
     def generate_customer(cls, **overrides) -> dict[str, Any]:
         """Génère un client aléatoire."""
         first_name = random.choice(cls.FIRST_NAMES)
         last_name = random.choice(cls.LAST_NAMES)
         country = random.choice(cls.COUNTRIES)
-        
+
         customer = {
             "customer_id": cls.generate_customer_id(),
             "email": cls.generate_email(first_name, last_name),
@@ -662,19 +739,19 @@ class DataGenerator:
         }
         customer.update(overrides)
         return customer
-    
+
     @classmethod
     def generate_customers(cls, count: int, **overrides) -> list[dict[str, Any]]:
         """Génère plusieurs clients."""
         return [cls.generate_customer(**overrides) for _ in range(count)]
-    
+
     @classmethod
     def generate_product(cls, **overrides) -> dict[str, Any]:
         """Génère un produit aléatoire."""
         category = random.choice(cls.CATEGORIES)
         price = round(random.uniform(10.0, 2000.0), 2)
         cost = round(price * random.uniform(0.3, 0.7), 2)
-        
+
         product = {
             "product_id": cls.generate_product_id(),
             "product_name": f"{category} Product {random.randint(100, 999)}",
@@ -690,12 +767,12 @@ class DataGenerator:
         }
         product.update(overrides)
         return product
-    
+
     @classmethod
     def generate_products(cls, count: int, **overrides) -> list[dict[str, Any]]:
         """Génère plusieurs produits."""
         return [cls.generate_product(**overrides) for _ in range(count)]
-    
+
     @classmethod
     def generate_transaction(
         cls,
@@ -706,12 +783,12 @@ class DataGenerator:
         """Génère une transaction aléatoire."""
         customer_id = random.choice(customer_ids) if customer_ids else cls.generate_customer_id()
         product_id = random.choice(product_ids) if product_ids else cls.generate_product_id()
-        
+
         quantity = random.randint(1, 10)
         unit_price = round(random.uniform(10.0, 500.0), 2)
         discount = round(random.uniform(0, unit_price * 0.2), 2)
         total_amount = round(quantity * unit_price - discount, 2)
-        
+
         transaction = {
             "transaction_id": cls.generate_transaction_id(),
             "customer_id": customer_id,
@@ -722,12 +799,14 @@ class DataGenerator:
             "total_amount": total_amount,
             "transaction_date": cls.generate_datetime(),
             "payment_method": random.choice(cls.PAYMENT_METHODS),
-            "status": random.choice(["COMPLETED", "COMPLETED", "COMPLETED", "PENDING", "CANCELLED"]),
+            "status": random.choice(
+                ["COMPLETED", "COMPLETED", "COMPLETED", "PENDING", "CANCELLED"]
+            ),
             "channel": random.choice(cls.CHANNELS),
         }
         transaction.update(overrides)
         return transaction
-    
+
     @classmethod
     def generate_transactions(
         cls,
@@ -738,10 +817,9 @@ class DataGenerator:
     ) -> list[dict[str, Any]]:
         """Génère plusieurs transactions."""
         return [
-            cls.generate_transaction(customer_ids, product_ids, **overrides)
-            for _ in range(count)
+            cls.generate_transaction(customer_ids, product_ids, **overrides) for _ in range(count)
         ]
-    
+
     @classmethod
     def generate_complete_dataset(
         cls,
@@ -752,16 +830,16 @@ class DataGenerator:
         """Génère un dataset complet et cohérent."""
         customers = cls.generate_customers(num_customers)
         products = cls.generate_products(num_products)
-        
+
         customer_ids = [c["customer_id"] for c in customers]
         product_ids = [p["product_id"] for p in products]
-        
+
         transactions = cls.generate_transactions(
             num_transactions,
             customer_ids=customer_ids,
             product_ids=product_ids,
         )
-        
+
         return {
             "customers": customers,
             "products": products,
@@ -841,6 +919,7 @@ RAW_JSON_DATA = [
 # =============================================================================
 # FONCTIONS UTILITAIRES
 # =============================================================================
+
 
 def get_sample_customers(include_invalid: bool = False) -> list[dict[str, Any]]:
     """Retourne les données clients de test."""

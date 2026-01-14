@@ -60,25 +60,13 @@ class KafkaReader(BaseReader):
                 kafka_options["kafka.group.id"] = self.config["group_id"]
 
             if "max_offsets_per_trigger" in self.config:
-                kafka_options["maxOffsetsPerTrigger"] = str(
-                    self.config["max_offsets_per_trigger"]
-                )
+                kafka_options["maxOffsetsPerTrigger"] = str(self.config["max_offsets_per_trigger"])
 
             # Choix batch ou streaming
             if mode == "stream":
-                df = (
-                    self.spark.readStream
-                    .format("kafka")
-                    .options(**kafka_options)
-                    .load()
-                )
+                df = self.spark.readStream.format("kafka").options(**kafka_options).load()
             else:
-                df = (
-                    self.spark.read
-                    .format("kafka")
-                    .options(**kafka_options)
-                    .load()
-                )
+                df = self.spark.read.format("kafka").options(**kafka_options).load()
 
             logger.info(
                 "Lecture Kafka configurée",
@@ -98,7 +86,9 @@ class KafkaReader(BaseReader):
                 },
             ) from e
 
-    def read_with_schema(self, value_schema: str, mode: Literal["batch", "stream"] = "batch") -> DataFrame:
+    def read_with_schema(
+        self, value_schema: str, mode: Literal["batch", "stream"] = "batch"
+    ) -> DataFrame:
         """
         Lit et parse les messages avec un schéma JSON.
 

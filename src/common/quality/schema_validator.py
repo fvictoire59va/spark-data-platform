@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 @dataclass
 class SchemaValidationResult:
     """Résultat de validation de schéma."""
+
     is_valid: bool
     missing_columns: list[str]
     extra_columns: list[str]
@@ -58,16 +59,10 @@ class SchemaValidator:
         actual_fields = {f.name: f for f in df.schema.fields}
 
         # Colonnes manquantes
-        missing = [
-            name for name in self._expected_fields
-            if name not in actual_fields
-        ]
+        missing = [name for name in self._expected_fields if name not in actual_fields]
 
         # Colonnes extra
-        extra = [
-            name for name in actual_fields
-            if name not in self._expected_fields
-        ]
+        extra = [name for name in actual_fields if name not in self._expected_fields]
 
         # Vérification des types
         type_mismatches = {}
@@ -132,7 +127,7 @@ class SchemaValidator:
 
         if not result.is_valid:
             error_details = []
-            
+
             if result.missing_columns:
                 error_details.append(f"Colonnes manquantes: {result.missing_columns}")
             if result.type_mismatches:

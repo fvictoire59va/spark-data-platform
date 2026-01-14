@@ -13,6 +13,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Environment(str, Enum):
     """Environnements disponibles."""
+
     LOCAL = "local"
     DEV = "dev"
     STAGING = "staging"
@@ -21,7 +22,7 @@ class Environment(str, Enum):
 
 class Settings(BaseSettings):
     """Configuration globale de l'application."""
-    
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -37,24 +38,24 @@ class Settings(BaseSettings):
     spark_shuffle_partitions: int = Field(default=200)
     spark_default_parallelism: int = Field(default=100)
     spark_log_level: str = Field(default="WARN")
-    
+
     # Delta Lake
     delta_enabled: bool = Field(default=True)
-    
+
     # Storage
     data_lake_path: str = Field(default="/data/lake")
     bronze_path: str = Field(default="/data/lake/bronze")
     silver_path: str = Field(default="/data/lake/silver")
     gold_path: str = Field(default="/data/lake/gold")
-    
+
     # Database
     jdbc_url: str | None = Field(default=None)
     jdbc_user: str | None = Field(default=None)
     jdbc_password: str | None = Field(default=None)
-    
+
     # Kafka
     kafka_bootstrap_servers: str = Field(default="localhost:9092")
-    
+
     # Monitoring
     prometheus_port: int = Field(default=9090)
     enable_metrics: bool = Field(default=True)
@@ -87,7 +88,7 @@ class PipelineConfig:
             / "config"
             / f"{self.environment.value}.yaml"
         )
-        
+
         if config_path.exists():
             with open(config_path) as f:
                 self._config = yaml.safe_load(f) or {}
@@ -98,13 +99,13 @@ class PipelineConfig:
         """Récupère une valeur de configuration."""
         keys = key.split(".")
         value = self._config
-        
+
         for k in keys:
             if isinstance(value, dict):
                 value = value.get(k)
             else:
                 return default
-                
+
         return value if value is not None else default
 
     @property
@@ -123,7 +124,7 @@ class PipelineConfig:
         return self._config.get("transformations", [])
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """Récupère les settings (singleton)."""
     return Settings()

@@ -90,11 +90,7 @@ class DeltaReader(BaseReader):
             DataFrame avec les changements
         """
         try:
-            reader = (
-                self.spark.read
-                .format("delta")
-                .option("readChangeFeed", "true")
-            )
+            reader = self.spark.read.format("delta").option("readChangeFeed", "true")
 
             if starting_version is not None:
                 reader = reader.option("startingVersion", starting_version)

@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from pyspark.sql import DataFrame, functions as F
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 
 from src.common.transformers.base_transformer import BaseTransformer
 
@@ -20,10 +21,7 @@ class TrimStringsTransformer(BaseTransformer):
 
     def transform(self, df: DataFrame) -> DataFrame:
         """Applique trim sur les colonnes string."""
-        string_cols = [
-            f.name for f in df.schema.fields
-            if str(f.dataType) == "StringType"
-        ]
+        string_cols = [f.name for f in df.schema.fields if str(f.dataType) == "StringType"]
 
         if self.columns:
             string_cols = [c for c in string_cols if c in self.columns]

@@ -43,8 +43,7 @@ class TestFullSalesPipeline:
         customers_df = spark.read.format("delta").load(bronze_customers)
 
         silver_df = (
-            orders_df
-            .filter(F.col("status") == "completed")
+            orders_df.filter(F.col("status") == "completed")
             .join(customers_df, "customer_id", "left")
             .select(
                 "order_id",
@@ -70,8 +69,7 @@ class TestFullSalesPipeline:
         silver_df = spark.read.format("delta").load(silver_orders)
 
         gold_df = (
-            silver_df
-            .groupBy("country", "order_date")
+            silver_df.groupBy("country", "order_date")
             .agg(
                 F.count("order_id").alias("total_orders"),
                 F.sum("amount").alias("total_revenue"),
@@ -113,7 +111,8 @@ class TestFullSalesPipeline:
             "valid_amounts": df.filter(F.col("amount") < 0).count() == 0,
             "valid_status": df.filter(
                 ~F.col("status").isin(["completed", "pending", "cancelled"])
-            ).count() == 0,
+            ).count()
+            == 0,
         }
 
         # Toutes les vérifications doivent passer
@@ -135,9 +134,7 @@ class TestFullSalesPipeline:
             ("ORD001", "2024-01-15", 100.0),
             ("ORD002", "2024-01-15", 200.0),
         ]
-        initial_df = spark.createDataFrame(
-            initial_data, ["order_id", "order_date", "amount"]
-        )
+        initial_df = spark.createDataFrame(initial_data, ["order_id", "order_date", "amount"])
         initial_df.write.format("delta").mode("overwrite").save(path)
 
         # Vérification initiale
@@ -156,13 +153,10 @@ class TestFullSalesPipeline:
         from delta.tables import DeltaTable
 
         delta_table = DeltaTable.forPath(spark, path)
-        
+
         (
             delta_table.alias("target")
-            .merge(
-                incremental_df.alias("source"),
-                "target.order_id = source.order_id"
-            )
+            .merge(incremental_df.alias("source"), "target.order_id = source.order_id")
             .whenMatchedUpdateAll()
             .whenNotMatchedInsertAll()
             .execute()

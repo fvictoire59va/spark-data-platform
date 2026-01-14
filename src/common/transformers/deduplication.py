@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pyspark.sql import DataFrame, Window, functions as F
+from pyspark.sql import DataFrame, Window
+from pyspark.sql import functions as F
 
 from src.common.transformers.base_transformer import BaseTransformer
 from src.core.logger import get_logger
@@ -61,8 +62,7 @@ class DeduplicationTransformer(BaseTransformer):
                 F.max("_row_num").alias("_max_row")
             )
             df_deduped = (
-                df_with_row
-                .join(max_row, self.key_columns)
+                df_with_row.join(max_row, self.key_columns)
                 .filter(F.col("_row_num") == F.col("_max_row"))
                 .drop("_max_row")
             )

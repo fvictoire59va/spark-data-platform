@@ -1,9 +1,8 @@
 """Transformers de validation et enforcement de schéma."""
 from __future__ import annotations
 
-from typing import Any
-
-from pyspark.sql import DataFrame, functions as F
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 from pyspark.sql.types import StructType
 
 from src.common.transformers.base_transformer import BaseTransformer
@@ -56,10 +55,7 @@ class SchemaEnforcementTransformer(BaseTransformer):
         if missing_cols and self.fill_missing:
             for field in self.schema.fields:
                 if field.name in missing_cols:
-                    df = df.withColumn(
-                        field.name,
-                        F.lit(None).cast(field.dataType)
-                    )
+                    df = df.withColumn(field.name, F.lit(None).cast(field.dataType))
                     logger.warning(f"Colonne ajoutée avec null: {field.name}")
 
         # Supprimer les colonnes extra
@@ -71,9 +67,7 @@ class SchemaEnforcementTransformer(BaseTransformer):
         select_exprs = []
         for field in self.schema.fields:
             if field.name in df.columns:
-                select_exprs.append(
-                    F.col(field.name).cast(field.dataType).alias(field.name)
-                )
+                select_exprs.append(F.col(field.name).cast(field.dataType).alias(field.name))
 
         return df.select(*select_exprs)
 

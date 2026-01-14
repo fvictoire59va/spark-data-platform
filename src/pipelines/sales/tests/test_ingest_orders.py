@@ -1,12 +1,10 @@
 """Tests pour le job d'ingestion des commandes."""
 from __future__ import annotations
 
-from datetime import date
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-from pyspark.sql import functions as F
 from pyspark.sql.types import (
     DoubleType,
     IntegerType,
@@ -57,16 +55,18 @@ class TestIngestOrdersJob:
             ("ORD005", None, "2024-01-17", "PROD001", 1, 29.99, 0.0, "confirmed"),
         ]
 
-        schema = StructType([
-            StructField("order_id", StringType(), True),
-            StructField("customer_id", StringType(), True),
-            StructField("order_date", StringType(), True),
-            StructField("product_id", StringType(), True),
-            StructField("quantity", IntegerType(), True),
-            StructField("unit_price", DoubleType(), True),
-            StructField("discount", DoubleType(), True),
-            StructField("status", StringType(), True),
-        ])
+        schema = StructType(
+            [
+                StructField("order_id", StringType(), True),
+                StructField("customer_id", StringType(), True),
+                StructField("order_date", StringType(), True),
+                StructField("product_id", StringType(), True),
+                StructField("quantity", IntegerType(), True),
+                StructField("unit_price", DoubleType(), True),
+                StructField("discount", DoubleType(), True),
+                StructField("status", StringType(), True),
+            ]
+        )
 
         return spark.createDataFrame(data, schema)
 
@@ -78,7 +78,7 @@ class TestIngestOrdersJob:
         """Vérifie que extract retourne un DataFrame."""
         with patch.object(job, "_read_from_source", return_value=raw_orders_df):
             result = job.extract()
-            
+
             assert result is not None
             assert result.count() == 5
 
@@ -119,10 +119,11 @@ class TestIngestOrdersJob:
         self,
         job: IngestOrdersJob,
         spark: SparkSession,
+        raw_orders_df: DataFrame,
     ):
         """Vérifie que la validation échoue pour un DataFrame vide."""
         empty_df = spark.createDataFrame([], raw_orders_df.schema)
-        
+
         result = job.validate(empty_df)
         assert result is False
 

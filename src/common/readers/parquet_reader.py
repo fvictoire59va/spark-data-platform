@@ -42,13 +42,13 @@ class ParquetReader(BaseReader):
         """
         try:
             path = self.config["path"]
-            
+
             reader = self.spark.read.format("parquet")
-            
+
             # Options
             if self.config.get("merge_schema", False):
                 reader = reader.option("mergeSchema", "true")
-            
+
             if "path_glob_filter" in self.config:
                 reader = reader.option("pathGlobFilter", self.config["path_glob_filter"])
 

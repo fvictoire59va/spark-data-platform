@@ -3,52 +3,44 @@
 
 from __future__ import annotations
 
-import pytest
 import os
-import tempfile
 import shutil
-from datetime import datetime, date
-from typing import Generator, Any
+import tempfile
+from collections.abc import Generator
 from unittest.mock import MagicMock
 
-from pyspark.sql import SparkSession, DataFrame
+import pytest
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import (
-    StructType,
-    StructField,
-    StringType,
-    IntegerType,
-    LongType,
-    DoubleType,
     BooleanType,
-    DateType,
-    TimestampType,
-    ArrayType,
-    MapType,
+    DoubleType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
 )
 
 from tests.fixtures.sample_data import (
-    SAMPLE_CUSTOMERS_VALID,
     SAMPLE_CUSTOMERS_INVALID,
+    SAMPLE_CUSTOMERS_VALID,
     SAMPLE_PRODUCTS_VALID,
     SAMPLE_TRANSACTIONS_VALID,
-    DataGenerator,
 )
-
 
 # =============================================================================
 # SPARK SESSION FIXTURE
 # =============================================================================
 
+
 @pytest.fixture(scope="session")
 def spark() -> Generator[SparkSession, None, None]:
     """
     Crée une session Spark pour les tests unitaires.
-    
+
     Scope 'session' pour réutiliser la même session dans tous les tests.
     """
     spark_session = (
-        SparkSession.builder
-        .master("local[2]")
+        SparkSession.builder.master("local[2]")
         .appName("unit-tests")
         .config("spark.sql.shuffle.partitions", "2")
         .config("spark.default.parallelism", "2")
@@ -58,12 +50,12 @@ def spark() -> Generator[SparkSession, None, None]:
         .config("spark.sql.session.timeZone", "UTC")
         .getOrCreate()
     )
-    
+
     # Réduire le niveau de log pour les tests
     spark_session.sparkContext.setLogLevel("WARN")
-    
+
     yield spark_session
-    
+
     spark_session.stop()
 
 
@@ -76,6 +68,7 @@ def spark_context(spark: SparkSession):
 # =============================================================================
 # TEMPORARY DIRECTORIES
 # =============================================================================
+
 
 @pytest.fixture
 def tmp_dir() -> Generator[str, None, None]:
@@ -123,11 +116,13 @@ def json_file(tmp_dir: str) -> str:
 def parquet_dir(spark: SparkSession, tmp_dir: str) -> str:
     """Crée un répertoire avec des fichiers Parquet de test."""
     path = os.path.join(tmp_dir, "parquet_data")
-    df = spark.createDataFrame([
-        {"id": 1, "name": "Alice", "value": 100},
-        {"id": 2, "name": "Bob", "value": 200},
-        {"id": 3, "name": "Charlie", "value": 300},
-    ])
+    df = spark.createDataFrame(
+        [
+            {"id": 1, "name": "Alice", "value": 100},
+            {"id": 2, "name": "Bob", "value": 200},
+            {"id": 3, "name": "Charlie", "value": 300},
+        ]
+    )
     df.write.parquet(path)
     return path
 
@@ -136,14 +131,17 @@ def parquet_dir(spark: SparkSession, tmp_dir: str) -> str:
 # DATAFRAME FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def empty_df(spark: SparkSession) -> DataFrame:
     """Crée un DataFrame vide avec schéma."""
-    schema = StructType([
-        StructField("id", IntegerType(), True),
-        StructField("name", StringType(), True),
-        StructField("value", DoubleType(), True),
-    ])
+    schema = StructType(
+        [
+            StructField("id", IntegerType(), True),
+            StructField("name", StringType(), True),
+            StructField("value", DoubleType(), True),
+        ]
+    )
     return spark.createDataFrame([], schema)
 
 
@@ -271,44 +269,50 @@ def df_with_arrays(spark: SparkSession) -> DataFrame:
 # SCHEMA FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def customer_schema() -> StructType:
     """Retourne le schéma client."""
-    return StructType([
-        StructField("customer_id", StringType(), False),
-        StructField("email", StringType(), True),
-        StructField("first_name", StringType(), True),
-        StructField("last_name", StringType(), True),
-        StructField("phone", StringType(), True),
-        StructField("birth_date", StringType(), True),
-        StructField("gender", StringType(), True),
-        StructField("city", StringType(), True),
-        StructField("country", StringType(), True),
-        StructField("registration_date", StringType(), True),
-        StructField("is_active", BooleanType(), True),
-        StructField("customer_segment", StringType(), True),
-    ])
+    return StructType(
+        [
+            StructField("customer_id", StringType(), False),
+            StructField("email", StringType(), True),
+            StructField("first_name", StringType(), True),
+            StructField("last_name", StringType(), True),
+            StructField("phone", StringType(), True),
+            StructField("birth_date", StringType(), True),
+            StructField("gender", StringType(), True),
+            StructField("city", StringType(), True),
+            StructField("country", StringType(), True),
+            StructField("registration_date", StringType(), True),
+            StructField("is_active", BooleanType(), True),
+            StructField("customer_segment", StringType(), True),
+        ]
+    )
 
 
 @pytest.fixture
 def transaction_schema() -> StructType:
     """Retourne le schéma transaction."""
-    return StructType([
-        StructField("transaction_id", StringType(), False),
-        StructField("customer_id", StringType(), False),
-        StructField("product_id", StringType(), False),
-        StructField("quantity", IntegerType(), True),
-        StructField("unit_price", DoubleType(), True),
-        StructField("total_amount", DoubleType(), True),
-        StructField("transaction_date", StringType(), True),
-        StructField("channel", StringType(), True),
-        StructField("status", StringType(), True),
-    ])
+    return StructType(
+        [
+            StructField("transaction_id", StringType(), False),
+            StructField("customer_id", StringType(), False),
+            StructField("product_id", StringType(), False),
+            StructField("quantity", IntegerType(), True),
+            StructField("unit_price", DoubleType(), True),
+            StructField("total_amount", DoubleType(), True),
+            StructField("transaction_date", StringType(), True),
+            StructField("channel", StringType(), True),
+            StructField("status", StringType(), True),
+        ]
+    )
 
 
 # =============================================================================
 # MOCK FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def mock_spark_session() -> MagicMock:
@@ -332,26 +336,30 @@ def mock_dataframe() -> MagicMock:
 # HELPER FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def assert_dataframe_equal():
     """Fixture pour comparer deux DataFrames."""
+
     def _assert_equal(df1: DataFrame, df2: DataFrame, check_order: bool = False):
         """
         Compare deux DataFrames.
-        
+
         Args:
             df1: Premier DataFrame
             df2: Deuxième DataFrame
             check_order: Si True, vérifie aussi l'ordre des lignes
         """
         # Vérifier les colonnes
-        assert set(df1.columns) == set(df2.columns), \
-            f"Colonnes différentes: {df1.columns} vs {df2.columns}"
-        
+        assert set(df1.columns) == set(
+            df2.columns
+        ), f"Colonnes différentes: {df1.columns} vs {df2.columns}"
+
         # Vérifier le nombre de lignes
-        assert df1.count() == df2.count(), \
-            f"Nombre de lignes différent: {df1.count()} vs {df2.count()}"
-        
+        assert (
+            df1.count() == df2.count()
+        ), f"Nombre de lignes différent: {df1.count()} vs {df2.count()}"
+
         # Vérifier le contenu
         if check_order:
             rows1 = [row.asDict() for row in df1.collect()]
@@ -361,17 +369,19 @@ def assert_dataframe_equal():
             set1 = {tuple(sorted(row.asDict().items())) for row in df1.collect()}
             set2 = {tuple(sorted(row.asDict().items())) for row in df2.collect()}
             assert set1 == set2, "Contenu différent"
-    
+
     return _assert_equal
 
 
 @pytest.fixture
 def assert_column_values():
     """Fixture pour vérifier les valeurs d'une colonne."""
+
     def _assert_values(df: DataFrame, column: str, expected_values: list):
         """Vérifie que les valeurs d'une colonne correspondent."""
         actual_values = [row[column] for row in df.select(column).collect()]
-        assert sorted(actual_values) == sorted(expected_values), \
-            f"Valeurs différentes pour {column}: {actual_values} vs {expected_values}"
-    
+        assert sorted(actual_values) == sorted(
+            expected_values
+        ), f"Valeurs différentes pour {column}: {actual_values} vs {expected_values}"
+
     return _assert_values

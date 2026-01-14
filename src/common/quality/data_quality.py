@@ -1,9 +1,10 @@
 """Module de contrôle qualité des données."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from pyspark.sql import functions as F
 
@@ -18,6 +19,7 @@ logger = get_logger(__name__)
 
 class CheckSeverity(str, Enum):
     """Niveau de sévérité des checks."""
+
     WARNING = "warning"
     ERROR = "error"
     CRITICAL = "critical"
@@ -26,6 +28,7 @@ class CheckSeverity(str, Enum):
 @dataclass
 class QualityCheck:
     """Définition d'un contrôle qualité."""
+
     name: str
     check_fn: Callable[[DataFrame], bool]
     severity: CheckSeverity = CheckSeverity.ERROR
@@ -35,6 +38,7 @@ class QualityCheck:
 @dataclass
 class QualityResult:
     """Résultat d'un contrôle qualité."""
+
     check_name: str
     passed: bool
     severity: CheckSeverity
@@ -73,12 +77,12 @@ class DataQualityChecker:
     ) -> DataQualityChecker:
         """Vérifie l'unicité sur les colonnes."""
         col_str = "_".join(columns)
-        
+
         def check_fn(df: DataFrame) -> bool:
             total = df.count()
             distinct = df.select(*columns).distinct().count()
             return total == distinct
-        
+
         self._checks.append(
             QualityCheck(
                 name=f"unique_{col_str}",
@@ -96,10 +100,11 @@ class DataQualityChecker:
         severity: CheckSeverity = CheckSeverity.ERROR,
     ) -> DataQualityChecker:
         """Vérifie que les valeurs sont dans un ensemble défini."""
+
         def check_fn(df: DataFrame) -> bool:
             invalid = df.filter(~F.col(column).isin(list(allowed_values))).count()
             return invalid == 0
-        
+
         self._checks.append(
             QualityCheck(
                 name=f"values_in_set_{column}",
@@ -118,20 +123,21 @@ class DataQualityChecker:
         severity: CheckSeverity = CheckSeverity.ERROR,
     ) -> DataQualityChecker:
         """Vérifie que les valeurs sont dans une plage."""
+
         def check_fn(df: DataFrame) -> bool:
             conditions = []
             if min_value is not None:
                 conditions.append(F.col(column) < min_value)
             if max_value is not None:
                 conditions.append(F.col(column) > max_value)
-            
+
             if conditions:
                 combined = conditions[0]
                 for cond in conditions[1:]:
                     combined = combined | cond
                 return df.filter(combined).count() == 0
             return True
-        
+
         self._checks.append(
             QualityCheck(
                 name=f"range_{column}",
@@ -149,6 +155,7 @@ class DataQualityChecker:
         severity: CheckSeverity = CheckSeverity.ERROR,
     ) -> DataQualityChecker:
         """Vérifie le nombre de lignes."""
+
         def check_fn(df: DataFrame) -> bool:
             count = df.count()
             if count < min_count:
@@ -156,7 +163,7 @@ class DataQualityChecker:
             if max_count is not None and count > max_count:
                 return False
             return True
-        
+
         self._checks.append(
             QualityCheck(
                 name="row_count",
@@ -200,7 +207,7 @@ class DataQualityChecker:
         """
         self._results = []
         failed_checks: list[str] = []
-        
+
         for check in self._checks:
             try:
                 passed = check.check_fn(self.df)
@@ -211,20 +218,22 @@ class DataQualityChecker:
                     details={"description": check.description},
                 )
                 self._results.append(result)
-                
+
                 if passed:
                     logger.info(f"Check réussi: {check.name}")
                 else:
-                    log_fn = logger.warning if check.severity == CheckSeverity.WARNING else logger.error
+                    log_fn = (
+                        logger.warning if check.severity == CheckSeverity.WARNING else logger.error
+                    )
                     log_fn(
                         f"Check échoué: {check.name}",
                         severity=check.severity.value,
                         description=check.description,
                     )
-                    
+
                     if check.severity in (CheckSeverity.ERROR, CheckSeverity.CRITICAL):
                         failed_checks.append(check.name)
-                        
+
             except Exception as e:
                 logger.error(f"Erreur lors du check {check.name}: {e}")
                 self._results.append(
@@ -236,13 +245,13 @@ class DataQualityChecker:
                     )
                 )
                 failed_checks.append(check.name)
-        
+
         if fail_on_error and failed_checks:
             raise DataQualityError(
                 f"Contrôles qualité échoués: {failed_checks}",
                 failed_checks=failed_checks,
             )
-        
+
         return self._results
 
     @property

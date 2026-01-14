@@ -1,12 +1,13 @@
 """Job d'ingestion des commandes vers Bronze."""
 from __future__ import annotations
 
-from pyspark.sql import DataFrame, functions as F
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 
 from src.common.readers.jdbc_reader import JDBCReader
 from src.common.writers.delta_writer import DeltaWriter
-from src.core.config_manager import Environment
 from src.core.base_job import BaseSparkJob
+from src.core.config_manager import Environment
 from src.pipelines.sales.schemas.orders_schema import ORDERS_BRONZE_SCHEMA
 
 
@@ -23,24 +24,22 @@ class IngestOrdersJob(BaseSparkJob):
     def extract(self) -> DataFrame:
         """Extrait les commandes depuis la base de données source."""
         source_config = self.config.source_config.get("orders", {})
-        
+
         reader = JDBCReader(self.spark, source_config)
         df = reader.with_schema(ORDERS_BRONZE_SCHEMA).read()
-        
+
         return df
 
     def transform(self, df: DataFrame) -> DataFrame:
         """Ajoute les métadonnées d'ingestion."""
-        return df.withColumn(
-            "_ingestion_timestamp", F.current_timestamp()
-        ).withColumn(
+        return df.withColumn("_ingestion_timestamp", F.current_timestamp()).withColumn(
             "_source", F.lit("jdbc_orders")
         )
 
     def load(self, df: DataFrame) -> None:
         """Écrit les données dans la couche Bronze."""
         target_config = self.config.target_config.get("bronze", {})
-        
+
         writer = DeltaWriter(self.spark, target_config)
         writer.write(df)
 
@@ -48,7 +47,7 @@ class IngestOrdersJob(BaseSparkJob):
 def main() -> None:
     """Point d'entrée du job."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Ingest Orders Job")
     parser.add_argument(
         "--environment",
@@ -57,11 +56,11 @@ def main() -> None:
         choices=["local", "dev", "staging", "prod"],
         help="Environnement d'exécution",
     )
-    
+
     args = parser.parse_args()
-    
+
     job = IngestOrdersJob(environment=Environment(args.environment))
-    
+
     try:
         result = job.run()
         print(f"Job terminé: {result}")

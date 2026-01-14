@@ -1,6 +1,7 @@
 """Writer pour les bases de données JDBC."""
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, Any
 
 from pyspark.sql import DataFrame
@@ -104,7 +105,7 @@ class JDBCWriter(BaseWriter):
         """
         # Créer une table temporaire
         temp_table = f"temp_{self.config['table']}_{int(time.time())}"
-        
+
         try:
             # Écrire dans la table temp
             temp_config = {**self.config, "table": temp_table}
@@ -114,17 +115,10 @@ class JDBCWriter(BaseWriter):
             # Construire la requête d'upsert
             all_columns = df.columns
             update_cols = update_columns or [c for c in all_columns if c not in key_columns]
-            
-            key_condition = " AND ".join([
-                f"target.{col} = source.{col}" for col in key_columns
-            ])
-            
-            update_set = ", ".join([
-                f"{col} = source.{col}" for col in update_cols
-            ])
-            
+
+            update_set = ", ".join([f"{col} = source.{col}" for col in update_cols])
+
             insert_cols = ", ".join(all_columns)
-            insert_vals = ", ".join([f"source.{col}" for col in all_columns])
 
             # Exécuter via JDBC
             upsert_sql = f"""
@@ -133,9 +127,9 @@ class JDBCWriter(BaseWriter):
                 ON CONFLICT ({', '.join(key_columns)})
                 DO UPDATE SET {update_set}
             """
-            
+
             self._execute_sql(upsert_sql)
-            
+
             logger.info(
                 "Upsert JDBC réussi",
                 table=self.config["table"],
@@ -149,7 +143,7 @@ class JDBCWriter(BaseWriter):
     def _execute_sql(self, sql: str) -> None:
         """Exécute une requête SQL via JDBC."""
         import jaydebeapi
-        
+
         conn = jaydebeapi.connect(
             self.config.get("driver", ""),
             self.config["url"],

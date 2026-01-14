@@ -14,7 +14,7 @@ from src.core.config_manager import get_settings
 def setup_logging() -> None:
     """Configure le logging structuré pour l'application."""
     settings = get_settings()
-    
+
     # Processors communs
     shared_processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
@@ -26,14 +26,12 @@ def setup_logging() -> None:
 
     if settings.environment.value in ("local", "dev"):
         # Format lisible pour le développement
-        processors = shared_processors + [
-            structlog.dev.ConsoleRenderer(colors=True)
-        ]
+        processors = shared_processors + [structlog.dev.ConsoleRenderer(colors=True)]
     else:
         # Format JSON pour la production
         processors = shared_processors + [
             structlog.processors.format_exc_info,
-            structlog.processors.JSONRenderer()
+            structlog.processors.JSONRenderer(),
         ]
 
     structlog.configure(

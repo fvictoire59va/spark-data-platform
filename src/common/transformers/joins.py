@@ -1,43 +1,43 @@
-#Classe
-#Description
+# Classe
+# Description
 
-#JoinTransformer
-#Jointures standard
+# JoinTransformer
+# Jointures standard
 
-#MultiJoinTransformer
-#Jointures multiples en chaîne
+# MultiJoinTransformer
+# Jointures multiples en chaîne
 
-#LookupJoinTransformer
-#Jointures de dimension optimisées
+# LookupJoinTransformer
+# Jointures de dimension optimisées
 
-#SelfJoinTransformer
-#Auto-jointures
+# SelfJoinTransformer
+# Auto-jointures
 
-#ConditionalJoinTransformer
-#Jointures avec conditions complexes
+# ConditionalJoinTransformer
+# Jointures avec conditions complexes
 
 # src/common/transformers/joins.py
 """Transformers pour les jointures de DataFrames."""
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
+from common.logging import get_logger
+from common.transformers.base_transformer import BaseTransformer
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.column import Column
-
-from common.transformers.base_transformer import BaseTransformer
-from common.logging import get_logger
 
 logger = get_logger(__name__)
 
 
 class JoinType(Enum):
     """Types de jointures supportées."""
-    
+
     INNER = "inner"
     LEFT = "left"
     LEFT_OUTER = "left_outer"
@@ -55,25 +55,25 @@ class JoinType(Enum):
 @dataclass
 class JoinCondition:
     """Condition de jointure."""
-    
+
     left_column: str
     right_column: str
     operator: str = "="  # =, <, >, <=, >=, !=
-    
+
     def to_expression(self, left_df: DataFrame, right_df: DataFrame) -> Column:
         """
         Convertit en expression Column.
-        
+
         Args:
             left_df: DataFrame gauche
             right_df: DataFrame droit
-            
+
         Returns:
             Expression de jointure
         """
         left_col = left_df[self.left_column]
         right_col = right_df[self.right_column]
-        
+
         operators = {
             "=": left_col == right_col,
             "==": left_col == right_col,
@@ -84,18 +84,18 @@ class JoinCondition:
             "<=": left_col <= right_col,
             ">=": left_col >= right_col,
         }
-        
+
         expr = operators.get(self.operator)
         if expr is None:
             raise ValueError(f"Opérateur non supporté: {self.operator}")
-        
+
         return expr
 
 
 @dataclass
 class JoinSpec:
     """Spécification complète d'une jointure."""
-    
+
     right_df: DataFrame
     join_type: JoinType | str = JoinType.INNER
     conditions: list[JoinCondition] = field(default_factory=list)
@@ -103,7 +103,7 @@ class JoinSpec:
     broadcast: bool = False  # Broadcast hint pour petites tables
     right_alias: str | None = None
     drop_duplicates: bool = True  # Supprime les colonnes dupliquées
-    
+
     def __post_init__(self):
         """Convertit le type si nécessaire."""
         if isinstance(self.join_type, str):
@@ -113,9 +113,9 @@ class JoinSpec:
 class JoinTransformer(BaseTransformer):
     """
     Transformer pour les jointures entre DataFrames.
-    
+
     Supporte tous les types de jointures Spark avec options avancées.
-    
+
     Example:
         >>> # Jointure simple sur colonnes communes
         >>> transformer = JoinTransformer(
@@ -124,7 +124,7 @@ class JoinTransformer(BaseTransformer):
         ...     join_type=JoinType.LEFT,
         ... )
         >>> result = transformer.transform(orders_df)
-        
+
         >>> # Jointure avec conditions multiples
         >>> transformer = JoinTransformer(
         ...     right_df=products_df,
@@ -136,7 +136,7 @@ class JoinTransformer(BaseTransformer):
         ... )
         >>> result = transformer.transform(orders_df)
     """
-    
+
     def __init__(
         self,
         right_df: DataFrame,
@@ -150,7 +150,7 @@ class JoinTransformer(BaseTransformer):
     ):
         """
         Initialise le JoinTransformer.
-        
+
         Args:
             right_df: DataFrame à joindre (droite)
             join_type: Type de jointure
@@ -169,20 +169,20 @@ class JoinTransformer(BaseTransformer):
         self.right_alias = right_alias
         self.drop_duplicate_columns = drop_duplicate_columns
         self.suffixes = suffixes
-        
+
         logger.debug(
             "JoinTransformer initialisé",
             join_type=self.join_type.value,
             broadcast=self.broadcast,
         )
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique la jointure au DataFrame.
-        
+
         Args:
             df: DataFrame gauche
-            
+
         Returns:
             DataFrame joint
         """
@@ -191,21 +191,21 @@ class JoinTransformer(BaseTransformer):
             join_type=self.join_type.value,
             broadcast=self.broadcast,
         )
-        
+
         left_df = df
         right_df = self.right_df
-        
+
         # Appliquer l'alias si spécifié
         if self.right_alias:
             right_df = right_df.alias(self.right_alias)
-        
+
         # Appliquer le broadcast hint si demandé
         if self.broadcast:
             right_df = F.broadcast(right_df)
-        
+
         # Construire la condition de jointure
         join_condition = self._build_join_condition(left_df, right_df)
-        
+
         # Exécuter la jointure
         if self.on_columns and not self.conditions:
             # Jointure simple sur colonnes communes
@@ -213,42 +213,38 @@ class JoinTransformer(BaseTransformer):
         else:
             # Jointure avec condition explicite
             result = left_df.join(right_df, on=join_condition, how=self.join_type.value)
-            
+
             # Gérer les colonnes dupliquées
             if self.drop_duplicate_columns:
                 result = self._handle_duplicate_columns(result, left_df, right_df)
-        
+
         logger.info(f"Jointure terminée: {result.count()} lignes")
-        
+
         return result
-    
+
     def _build_join_condition(self, left_df: DataFrame, right_df: DataFrame) -> Column | None:
         """
         Construit la condition de jointure.
-        
+
         Args:
             left_df: DataFrame gauche
             right_df: DataFrame droit
-            
+
         Returns:
             Expression de condition ou None
         """
         if not self.conditions:
             return None
-        
+
         # Combiner toutes les conditions avec AND
         combined_condition = None
-        
+
         for condition in self.conditions:
             expr = condition.to_expression(left_df, right_df)
-            
-            if combined_condition is None:
-                combined_condition = expr
-            else:
-                combined_condition = combined_condition & expr
-        
+            combined_condition = expr if combined_condition is None else combined_condition & expr
+
         return combined_condition
-    
+
     def _handle_duplicate_columns(
         self,
         result: DataFrame,
@@ -257,40 +253,40 @@ class JoinTransformer(BaseTransformer):
     ) -> DataFrame:
         """
         Gère les colonnes dupliquées après jointure.
-        
+
         Args:
             result: DataFrame résultat
             left_df: DataFrame gauche original
             right_df: DataFrame droit original
-            
+
         Returns:
             DataFrame avec colonnes renommées ou supprimées
         """
         left_cols = set(left_df.columns)
         right_cols = set(right_df.columns)
-        
+
         # Colonnes utilisées dans la jointure
         join_cols = set()
         for condition in self.conditions:
             join_cols.add(condition.right_column)
-        
+
         # Supprimer les colonnes dupliquées du côté droit
         cols_to_drop = []
         for col in right_cols:
             if col in left_cols and col in join_cols:
                 # Supprimer la colonne dupliquée du DataFrame droit
                 cols_to_drop.append(right_df[col])
-        
+
         if cols_to_drop:
             result = result.drop(*cols_to_drop)
-        
+
         return result
 
 
 class MultiJoinTransformer(BaseTransformer):
     """
     Transformer pour les jointures multiples en chaîne.
-    
+
     Example:
         >>> transformer = MultiJoinTransformer(
         ...     joins=[
@@ -301,38 +297,38 @@ class MultiJoinTransformer(BaseTransformer):
         ... )
         >>> result = transformer.transform(orders_df)
     """
-    
+
     def __init__(self, joins: list[JoinSpec]):
         """
         Initialise le MultiJoinTransformer.
-        
+
         Args:
             joins: Liste des spécifications de jointure
         """
         self.joins = joins
-        
+
         logger.debug(
             "MultiJoinTransformer initialisé",
             join_count=len(self.joins),
         )
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique les jointures en séquence.
-        
+
         Args:
             df: DataFrame de base
-            
+
         Returns:
             DataFrame avec toutes les jointures appliquées
         """
         logger.info(f"Application de {len(self.joins)} jointures")
-        
+
         result = df
-        
+
         for i, join_spec in enumerate(self.joins, 1):
             logger.debug(f"Jointure {i}/{len(self.joins)}: {join_spec.join_type.value}")
-            
+
             transformer = JoinTransformer(
                 right_df=join_spec.right_df,
                 join_type=join_spec.join_type,
@@ -342,21 +338,21 @@ class MultiJoinTransformer(BaseTransformer):
                 right_alias=join_spec.right_alias,
                 drop_duplicate_columns=join_spec.drop_duplicates,
             )
-            
+
             result = transformer.transform(result)
-        
+
         logger.info(f"Jointures multiples terminées: {result.count()} lignes")
-        
+
         return result
 
 
 class LookupJoinTransformer(BaseTransformer):
     """
     Transformer pour les jointures de type lookup (dimension).
-    
-    Optimisé pour joindre une grande table de faits avec 
+
+    Optimisé pour joindre une grande table de faits avec
     de petites tables de dimensions.
-    
+
     Example:
         >>> transformer = LookupJoinTransformer(
         ...     lookup_df=dim_customers,
@@ -366,7 +362,7 @@ class LookupJoinTransformer(BaseTransformer):
         ... )
         >>> result = transformer.transform(fact_orders)
     """
-    
+
     def __init__(
         self,
         lookup_df: DataFrame,
@@ -378,7 +374,7 @@ class LookupJoinTransformer(BaseTransformer):
     ):
         """
         Initialise le LookupJoinTransformer.
-        
+
         Args:
             lookup_df: Table de lookup/dimension
             lookup_key: Clé dans la table de lookup
@@ -393,20 +389,20 @@ class LookupJoinTransformer(BaseTransformer):
         self.columns_to_add = columns_to_add
         self.broadcast_lookup = broadcast_lookup
         self.default_values = default_values or {}
-        
+
         logger.debug(
             "LookupJoinTransformer initialisé",
             lookup_key=self.lookup_key,
             source_key=self.source_key,
         )
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique la jointure de lookup.
-        
+
         Args:
             df: DataFrame source (table de faits)
-            
+
         Returns:
             DataFrame enrichi avec les colonnes de lookup
         """
@@ -415,45 +411,44 @@ class LookupJoinTransformer(BaseTransformer):
             lookup_key=self.lookup_key,
             source_key=self.source_key,
         )
-        
+
         # Préparer la table de lookup
         lookup = self.lookup_df
-        
+
         # Sélectionner uniquement les colonnes nécessaires
         if self.columns_to_add:
             cols_to_select = [self.lookup_key] + self.columns_to_add
             lookup = lookup.select(*cols_to_select)
-        
+
         # Broadcast si demandé
         if self.broadcast_lookup:
             lookup = F.broadcast(lookup)
-        
+
         # Condition de jointure
         join_condition = df[self.source_key] == lookup[self.lookup_key]
-        
+
         # Exécuter la jointure
         result = df.join(lookup, on=join_condition, how="left")
-        
+
         # Supprimer la clé dupliquée
         result = result.drop(lookup[self.lookup_key])
-        
+
         # Appliquer les valeurs par défaut
         for col_name, default_value in self.default_values.items():
             if col_name in result.columns:
                 result = result.withColumn(
-                    col_name,
-                    F.coalesce(F.col(col_name), F.lit(default_value))
+                    col_name, F.coalesce(F.col(col_name), F.lit(default_value))
                 )
-        
+
         logger.info(f"Lookup join terminé: {result.count()} lignes")
-        
+
         return result
 
 
 class SelfJoinTransformer(BaseTransformer):
     """
     Transformer pour les auto-jointures.
-    
+
     Example:
         >>> # Trouver les employés et leurs managers
         >>> transformer = SelfJoinTransformer(
@@ -464,7 +459,7 @@ class SelfJoinTransformer(BaseTransformer):
         ... )
         >>> result = transformer.transform(employees_df)
     """
-    
+
     def __init__(
         self,
         left_alias: str,
@@ -475,7 +470,7 @@ class SelfJoinTransformer(BaseTransformer):
     ):
         """
         Initialise le SelfJoinTransformer.
-        
+
         Args:
             left_alias: Alias pour le DataFrame gauche
             right_alias: Alias pour le DataFrame droit
@@ -488,20 +483,20 @@ class SelfJoinTransformer(BaseTransformer):
         self.join_condition = join_condition
         self.join_type = join_type
         self.right_columns = right_columns or {}
-        
+
         logger.debug(
             "SelfJoinTransformer initialisé",
             left_alias=self.left_alias,
             right_alias=self.right_alias,
         )
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique l'auto-jointure.
-        
+
         Args:
             df: DataFrame source
-            
+
         Returns:
             DataFrame avec auto-jointure appliquée
         """
@@ -510,39 +505,37 @@ class SelfJoinTransformer(BaseTransformer):
             left_alias=self.left_alias,
             right_alias=self.right_alias,
         )
-        
+
         # Créer les alias
         left_df = df.alias(self.left_alias)
         right_df = df.alias(self.right_alias)
-        
+
         # Construire la condition
         condition = self.join_condition(left_df, right_df)
-        
+
         # Exécuter la jointure
         result = left_df.join(right_df, on=condition, how=self.join_type.value)
-        
+
         # Sélectionner les colonnes avec renommage
         select_cols = [F.col(f"{self.left_alias}.*")]
-        
+
         for src_col, dest_col in self.right_columns.items():
-            select_cols.append(
-                F.col(f"{self.right_alias}.{src_col}").alias(dest_col)
-            )
-        
+            select_cols.append(F.col(f"{self.right_alias}.{src_col}").alias(dest_col))
+
         if self.right_columns:
             result = result.select(*select_cols)
-        
+
         logger.info(f"Auto-jointure terminée: {result.count()} lignes")
-        
+
         return result
 
 
 class ConditionalJoinTransformer(BaseTransformer):
     """
     Transformer pour les jointures conditionnelles complexes.
-    
+
     Permet des conditions de jointure avec logique OR ou plages de valeurs.
-    
+
     Example:
         >>> transformer = ConditionalJoinTransformer(
         ...     right_df=price_ranges_df,
@@ -554,7 +547,7 @@ class ConditionalJoinTransformer(BaseTransformer):
         ... )
         >>> result = transformer.transform(orders_df)
     """
-    
+
     def __init__(
         self,
         right_df: DataFrame,
@@ -565,7 +558,7 @@ class ConditionalJoinTransformer(BaseTransformer):
     ):
         """
         Initialise le ConditionalJoinTransformer.
-        
+
         Args:
             right_df: DataFrame droit
             condition: Fonction retournant la condition de jointure
@@ -578,42 +571,42 @@ class ConditionalJoinTransformer(BaseTransformer):
         self.join_type = join_type
         self.broadcast = broadcast
         self.columns_to_add = columns_to_add
-        
+
         logger.debug(
             "ConditionalJoinTransformer initialisé",
             join_type=self.join_type.value,
         )
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique la jointure conditionnelle.
-        
+
         Args:
             df: DataFrame gauche
-            
+
         Returns:
             DataFrame joint
         """
         logger.info("Application de la jointure conditionnelle")
-        
+
         right_df = self.right_df
-        
+
         # Filtrer les colonnes si spécifié
         if self.columns_to_add:
             # Identifier la clé de jointure probable
             right_df = right_df.select(*self.columns_to_add)
-        
+
         # Broadcast si demandé
         if self.broadcast:
             right_df = F.broadcast(right_df)
-        
+
         # Construire et appliquer la condition
         join_condition = self.condition(df, right_df)
-        
+
         result = df.join(right_df, on=join_condition, how=self.join_type.value)
-        
+
         logger.info(f"Jointure conditionnelle terminée: {result.count()} lignes")
-        
+
         return result
 
 
@@ -626,19 +619,19 @@ def inner_join(
 ) -> DataFrame:
     """
     Jointure interne simplifiée.
-    
+
     Args:
         left_df: DataFrame gauche
         right_df: DataFrame droit
         on: Colonnes de jointure
         broadcast_right: Broadcast le DataFrame droit
-        
+
     Returns:
         DataFrame joint
     """
     if broadcast_right:
         right_df = F.broadcast(right_df)
-    
+
     return left_df.join(right_df, on=on, how="inner")
 
 
@@ -650,19 +643,19 @@ def left_join(
 ) -> DataFrame:
     """
     Jointure gauche simplifiée.
-    
+
     Args:
         left_df: DataFrame gauche
         right_df: DataFrame droit
         on: Colonnes de jointure
         broadcast_right: Broadcast le DataFrame droit
-        
+
     Returns:
         DataFrame joint
     """
     if broadcast_right:
         right_df = F.broadcast(right_df)
-    
+
     return left_df.join(right_df, on=on, how="left")
 
 
@@ -675,22 +668,22 @@ def lookup(
 ) -> DataFrame:
     """
     Fonction de lookup simplifiée.
-    
+
     Args:
         df: DataFrame source
         lookup_df: Table de lookup
         key: Colonne clé
         columns: Colonnes à ajouter
         broadcast_lookup: Broadcast la table de lookup
-        
+
     Returns:
         DataFrame enrichi
     """
     lookup_select = lookup_df.select(key, *columns)
-    
+
     if broadcast_lookup:
         lookup_select = F.broadcast(lookup_select)
-    
+
     return df.join(lookup_select, on=key, how="left")
 
 
@@ -701,12 +694,12 @@ def anti_join(
 ) -> DataFrame:
     """
     Anti-jointure (lignes de gauche non présentes à droite).
-    
+
     Args:
         left_df: DataFrame gauche
         right_df: DataFrame droit
         on: Colonnes de jointure
-        
+
     Returns:
         DataFrame avec lignes non matchées
     """
@@ -720,12 +713,12 @@ def semi_join(
 ) -> DataFrame:
     """
     Semi-jointure (lignes de gauche présentes à droite).
-    
+
     Args:
         left_df: DataFrame gauche
         right_df: DataFrame droit
         on: Colonnes de jointure
-        
+
     Returns:
         DataFrame avec lignes matchées (colonnes de gauche uniquement)
     """

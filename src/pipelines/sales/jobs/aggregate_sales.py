@@ -1,7 +1,8 @@
 """Job d'agrégation des ventes Silver -> Gold."""
 from __future__ import annotations
 
-from pyspark.sql import DataFrame, functions as F
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
 from src.common.quality import DataQualityChecker, QualityCheck
@@ -31,12 +32,8 @@ class AggregateSalesJob(BaseSparkJob):
             Dict avec les DataFrames sources
         """
         silver_path = self._get_config("paths.silver.orders")
-        
-        df_orders = (
-            self._spark.read
-            .format("delta")
-            .load(silver_path)
-        )
+
+        df_orders = self._spark.read.format("delta").load(silver_path)
 
         logger.info(
             "Extraction Silver terminée",
@@ -84,7 +81,7 @@ class AggregateSalesJob(BaseSparkJob):
 
         for table_name, df in data.items():
             path = f"{gold_base_path}/{table_name}"
-            
+
             writer = DeltaWriter(
                 self._spark,
                 {
@@ -105,7 +102,7 @@ class AggregateSalesJob(BaseSparkJob):
         """Valide les agrégations."""
         checker = DataQualityChecker(self._spark)
 
-        for table_name, df in data.items():
+        for table_name in data:
             checker.add_check(
                 QualityCheck(
                     name=f"{table_name}_not_empty",
@@ -197,4 +194,3 @@ class AggregateSalesJob(BaseSparkJob):
 if __name__ == "__main__":
     job = AggregateSalesJob()
     job.run()
-    

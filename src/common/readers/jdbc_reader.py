@@ -58,12 +58,15 @@ class JDBCReader(BaseReader):
             # Options optionnelles
             if "driver" in self.config:
                 jdbc_options["driver"] = self.config["driver"]
-            
+
             if "fetch_size" in self.config:
                 jdbc_options["fetchsize"] = str(self.config["fetch_size"])
 
             # Partitionnement pour lecture parallèle
-            if all(k in self.config for k in ["partition_column", "lower_bound", "upper_bound", "num_partitions"]):
+            if all(
+                k in self.config
+                for k in ["partition_column", "lower_bound", "upper_bound", "num_partitions"]
+            ):
                 jdbc_options["partitionColumn"] = self.config["partition_column"]
                 jdbc_options["lowerBound"] = str(self.config["lower_bound"])
                 jdbc_options["upperBound"] = str(self.config["upper_bound"])

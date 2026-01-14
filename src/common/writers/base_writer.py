@@ -15,6 +15,7 @@ T = TypeVar("T", bound="BaseWriter")
 
 class WriteMode(str, Enum):
     """Modes d'écriture supportés."""
+
     APPEND = "append"
     OVERWRITE = "overwrite"
     ERROR_IF_EXISTS = "errorifexists"

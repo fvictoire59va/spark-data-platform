@@ -43,14 +43,12 @@ class SparkSessionFactory:
             return cls._instance
 
         settings = settings or get_settings()
-        
+
         builder = (
-            SparkSession.builder
-            .appName(app_name)
+            SparkSession.builder.appName(app_name)
             .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
             .config(
-                "spark.sql.catalog.spark_catalog",
-                "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+                "spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog"
             )
             .config("spark.sql.adaptive.enabled", "true")
             .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
@@ -62,14 +60,12 @@ class SparkSessionFactory:
         # Configuration environnement
         if settings.environment == "local":
             builder = builder.master("local[*]")
-        
+
         # Delta Lake configurations
         if settings.delta_enabled:
-            builder = (
-                builder
-                .config("spark.databricks.delta.retentionDurationCheck.enabled", "false")
-                .config("spark.databricks.delta.schema.autoMerge.enabled", "true")
-            )
+            builder = builder.config(
+                "spark.databricks.delta.retentionDurationCheck.enabled", "false"
+            ).config("spark.databricks.delta.schema.autoMerge.enabled", "true")
 
         # Configurations additionnelles
         if additional_configs:
@@ -77,17 +73,17 @@ class SparkSessionFactory:
                 builder = builder.config(key, value)
 
         cls._instance = builder.getOrCreate()
-        
+
         # Configuration du niveau de log
         cls._instance.sparkContext.setLogLevel(settings.spark_log_level)
-        
+
         logger.info(
             "Session Spark créée",
             app_name=app_name,
             environment=settings.environment,
             spark_version=cls._instance.version,
         )
-        
+
         return cls._instance
 
     @classmethod
@@ -106,7 +102,7 @@ class SparkSessionFactory:
             logger.info("Session Spark arrêtée")
 
 
-@lru_cache()
+@lru_cache
 def get_spark_session(app_name: str = "SparkApp") -> SparkSession:
     """Helper pour obtenir une session Spark (cached)."""
     return SparkSessionFactory.get_or_create(app_name)

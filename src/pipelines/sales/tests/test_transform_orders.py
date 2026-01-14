@@ -1,12 +1,10 @@
 """Tests pour le job de transformation des commandes."""
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-from chispa.dataframe_comparer import assert_df_equality
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
     DateType,
@@ -51,16 +49,18 @@ class TestTransformOrdersJob:
             ("ORD001", "CUST001", "2024-01-15", "PROD001", 2, 29.99, 0.0, "confirmed"),  # Doublon
         ]
 
-        schema = StructType([
-            StructField("order_id", StringType(), True),
-            StructField("customer_id", StringType(), True),
-            StructField("order_date", StringType(), True),
-            StructField("product_id", StringType(), True),
-            StructField("quantity", IntegerType(), True),
-            StructField("unit_price", DoubleType(), True),
-            StructField("discount", DoubleType(), True),
-            StructField("status", StringType(), True),
-        ])
+        schema = StructType(
+            [
+                StructField("order_id", StringType(), True),
+                StructField("customer_id", StringType(), True),
+                StructField("order_date", StringType(), True),
+                StructField("product_id", StringType(), True),
+                StructField("quantity", IntegerType(), True),
+                StructField("unit_price", DoubleType(), True),
+                StructField("discount", DoubleType(), True),
+                StructField("status", StringType(), True),
+            ]
+        )
 
         return spark.createDataFrame(data, schema)
 
@@ -120,16 +120,18 @@ class TestTransformOrdersJob:
             ("ORD003", "CUST001", "2024-01-15", "PROD001", 1, 10.0, 0.0, "SHIPPED"),
         ]
 
-        schema = StructType([
-            StructField("order_id", StringType(), True),
-            StructField("customer_id", StringType(), True),
-            StructField("order_date", StringType(), True),
-            StructField("product_id", StringType(), True),
-            StructField("quantity", IntegerType(), True),
-            StructField("unit_price", DoubleType(), True),
-            StructField("discount", DoubleType(), True),
-            StructField("status", StringType(), True),
-        ])
+        schema = StructType(
+            [
+                StructField("order_id", StringType(), True),
+                StructField("customer_id", StringType(), True),
+                StructField("order_date", StringType(), True),
+                StructField("product_id", StringType(), True),
+                StructField("quantity", IntegerType(), True),
+                StructField("unit_price", DoubleType(), True),
+                StructField("discount", DoubleType(), True),
+                StructField("status", StringType(), True),
+            ]
+        )
 
         df = spark.createDataFrame(data, schema)
         result = job.transform(df)
@@ -160,16 +162,18 @@ class TestTransformOrdersJob:
             (None, "CUST001", "2024-01-15", "PROD001", 1, 10.0, 0.0, "confirmed"),
         ]
 
-        schema = StructType([
-            StructField("order_id", StringType(), True),
-            StructField("customer_id", StringType(), True),
-            StructField("order_date", StringType(), True),
-            StructField("product_id", StringType(), True),
-            StructField("quantity", IntegerType(), True),
-            StructField("unit_price", DoubleType(), True),
-            StructField("discount", DoubleType(), True),
-            StructField("status", StringType(), True),
-        ])
+        schema = StructType(
+            [
+                StructField("order_id", StringType(), True),
+                StructField("customer_id", StringType(), True),
+                StructField("order_date", StringType(), True),
+                StructField("product_id", StringType(), True),
+                StructField("quantity", IntegerType(), True),
+                StructField("unit_price", DoubleType(), True),
+                StructField("discount", DoubleType(), True),
+                StructField("status", StringType(), True),
+            ]
+        )
 
         df = spark.createDataFrame(data, schema)
         result = job.validate(df)
@@ -186,16 +190,18 @@ class TestTransformOrdersJob:
             ("ORD001", "CUST001", "2024-01-15", "PROD001", -1, 10.0, 0.0, "confirmed"),
         ]
 
-        schema = StructType([
-            StructField("order_id", StringType(), True),
-            StructField("customer_id", StringType(), True),
-            StructField("order_date", StringType(), True),
-            StructField("product_id", StringType(), True),
-            StructField("quantity", IntegerType(), True),
-            StructField("unit_price", DoubleType(), True),
-            StructField("discount", DoubleType(), True),
-            StructField("status", StringType(), True),
-        ])
+        schema = StructType(
+            [
+                StructField("order_id", StringType(), True),
+                StructField("customer_id", StringType(), True),
+                StructField("order_date", StringType(), True),
+                StructField("product_id", StringType(), True),
+                StructField("quantity", IntegerType(), True),
+                StructField("unit_price", DoubleType(), True),
+                StructField("discount", DoubleType(), True),
+                StructField("status", StringType(), True),
+            ]
+        )
 
         df = spark.createDataFrame(data, schema)
         result = job.validate(df)
@@ -215,9 +221,9 @@ class TestTransformOrdersJob:
         # Simuler la lecture Bronze
         with patch.object(job, "extract", return_value=bronze_orders_df):
             transformed = job.transform(bronze_orders_df)
-            
+
             assert job.validate(transformed) is True
-            
+
             job.load(transformed)
 
             # Vérifier l'écriture

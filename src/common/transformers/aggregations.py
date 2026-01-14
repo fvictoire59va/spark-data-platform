@@ -1,6 +1,5 @@
-
-#Classe
-#Description
+# Classe
+# Description
 
 # AggregationTransformer - Agrégations groupées (SUM, AVG, COUNT...)
 
@@ -19,23 +18,23 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
+from common.logging import get_logger
+from common.transformers.base_transformer import BaseTransformer
 from pyspark.sql import DataFrame, Window
 from pyspark.sql import functions as F
 from pyspark.sql.column import Column
-
-from common.transformers.base_transformer import BaseTransformer
-from common.logging import get_logger
 
 logger = get_logger(__name__)
 
 
 class AggregationType(Enum):
     """Types d'agrégations supportées."""
-    
+
     SUM = "sum"
     COUNT = "count"
     AVG = "avg"
@@ -56,17 +55,17 @@ class AggregationType(Enum):
 @dataclass
 class AggregationSpec:
     """Spécification d'une agrégation."""
-    
+
     column: str
     agg_type: AggregationType | str
     alias: str | None = None
     percentile_value: float = 0.5  # Pour PERCENTILE
-    
+
     def __post_init__(self):
         """Convertit le type si nécessaire."""
         if isinstance(self.agg_type, str):
             self.agg_type = AggregationType(self.agg_type.lower())
-        
+
         if not self.alias:
             self.alias = f"{self.column}_{self.agg_type.value}"
 
@@ -74,10 +73,10 @@ class AggregationSpec:
 class AggregationTransformer(BaseTransformer):
     """
     Transformer pour les agrégations groupées.
-    
+
     Supporte les agrégations simples et multiples avec
     différentes fonctions d'agrégation.
-    
+
     Example:
         >>> transformer = AggregationTransformer(
         ...     group_by=["category", "region"],
@@ -89,7 +88,7 @@ class AggregationTransformer(BaseTransformer):
         ... )
         >>> result_df = transformer.transform(df)
     """
-    
+
     def __init__(
         self,
         group_by: list[str],
@@ -100,7 +99,7 @@ class AggregationTransformer(BaseTransformer):
     ):
         """
         Initialise l'AggregationTransformer.
-        
+
         Args:
             group_by: Colonnes de groupement
             aggregations: Liste des spécifications d'agrégation
@@ -113,20 +112,20 @@ class AggregationTransformer(BaseTransformer):
         self.having = having
         self.order_by = order_by
         self.ascending = ascending
-        
+
         logger.debug(
             "AggregationTransformer initialisé",
             group_by=self.group_by,
             aggregations_count=len(self.aggregations),
         )
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique les agrégations au DataFrame.
-        
+
         Args:
             df: DataFrame source
-            
+
         Returns:
             DataFrame agrégé
         """
@@ -135,46 +134,46 @@ class AggregationTransformer(BaseTransformer):
             group_by=self.group_by,
             aggregations_count=len(self.aggregations),
         )
-        
+
         # Construire les expressions d'agrégation
         agg_exprs = [self._build_agg_expr(spec) for spec in self.aggregations]
-        
+
         # Appliquer le groupement et les agrégations
         result = df.groupBy(*self.group_by).agg(*agg_exprs)
-        
+
         # Appliquer le filtre HAVING si présent
         if self.having is not None:
             result = result.filter(self.having)
-        
+
         # Appliquer le tri si demandé
         if self.order_by:
             if isinstance(self.ascending, bool):
                 ascending_list = [self.ascending] * len(self.order_by)
             else:
                 ascending_list = self.ascending
-            
+
             order_cols = [
                 F.col(col).asc() if asc else F.col(col).desc()
-                for col, asc in zip(self.order_by, ascending_list)
+                for col, asc in zip(self.order_by, ascending_list, strict=False)
             ]
             result = result.orderBy(*order_cols)
-        
+
         logger.info(f"Agrégation terminée: {result.count()} groupes")
-        
+
         return result
-    
+
     def _build_agg_expr(self, spec: AggregationSpec) -> Column:
         """
         Construit l'expression d'agrégation Spark.
-        
+
         Args:
             spec: Spécification d'agrégation
-            
+
         Returns:
             Expression Column
         """
         col = F.col(spec.column)
-        
+
         agg_map: dict[AggregationType, Callable[[], Column]] = {
             AggregationType.SUM: lambda: F.sum(col),
             AggregationType.COUNT: lambda: F.count(col),
@@ -192,18 +191,18 @@ class AggregationTransformer(BaseTransformer):
             AggregationType.MEDIAN: lambda: F.percentile_approx(col, 0.5),
             AggregationType.PERCENTILE: lambda: F.percentile_approx(col, spec.percentile_value),
         }
-        
+
         agg_func = agg_map.get(spec.agg_type)
         if not agg_func:
             raise ValueError(f"Type d'agrégation non supporté: {spec.agg_type}")
-        
+
         return agg_func().alias(spec.alias)
 
 
 class WindowAggregationTransformer(BaseTransformer):
     """
     Transformer pour les agrégations avec fenêtres (Window Functions).
-    
+
     Example:
         >>> transformer = WindowAggregationTransformer(
         ...     partition_by=["customer_id"],
@@ -215,7 +214,7 @@ class WindowAggregationTransformer(BaseTransformer):
         ... )
         >>> result_df = transformer.transform(df)
     """
-    
+
     def __init__(
         self,
         partition_by: list[str],
@@ -227,7 +226,7 @@ class WindowAggregationTransformer(BaseTransformer):
     ):
         """
         Initialise le WindowAggregationTransformer.
-        
+
         Args:
             partition_by: Colonnes de partitionnement
             order_by: Colonnes de tri dans la fenêtre
@@ -242,20 +241,20 @@ class WindowAggregationTransformer(BaseTransformer):
         self.ascending = ascending
         self.rows_between = rows_between
         self.range_between = range_between
-        
+
         logger.debug(
             "WindowAggregationTransformer initialisé",
             partition_by=self.partition_by,
             order_by=self.order_by,
         )
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique les agrégations de fenêtre au DataFrame.
-        
+
         Args:
             df: DataFrame source
-            
+
         Returns:
             DataFrame avec les colonnes de fenêtre ajoutées
         """
@@ -264,43 +263,43 @@ class WindowAggregationTransformer(BaseTransformer):
             partition_by=self.partition_by,
             aggregations_count=len(self.aggregations),
         )
-        
+
         # Construire la spécification de fenêtre
         window_spec = self._build_window_spec()
-        
+
         # Appliquer chaque agrégation
         result = df
         for spec in self.aggregations:
             agg_expr = self._build_window_expr(spec, window_spec)
             result = result.withColumn(spec.alias, agg_expr)
-        
+
         logger.info(f"Window functions appliquées: {len(self.aggregations)} colonnes ajoutées")
-        
+
         return result
-    
+
     def _build_window_spec(self) -> Window:
         """
         Construit la spécification de fenêtre.
-        
+
         Returns:
             WindowSpec configurée
         """
         # Partitionnement
         spec = Window.partitionBy(*self.partition_by)
-        
+
         # Tri
         if self.order_by:
             if isinstance(self.ascending, bool):
                 ascending_list = [self.ascending] * len(self.order_by)
             else:
                 ascending_list = self.ascending
-            
+
             order_cols = [
                 F.col(col).asc() if asc else F.col(col).desc()
-                for col, asc in zip(self.order_by, ascending_list)
+                for col, asc in zip(self.order_by, ascending_list, strict=False)
             ]
             spec = spec.orderBy(*order_cols)
-        
+
         # Bornes de fenêtre
         if self.rows_between:
             start, end = self.rows_between
@@ -312,22 +311,22 @@ class WindowAggregationTransformer(BaseTransformer):
             start = start if start is not None else Window.unboundedPreceding
             end = end if end is not None else Window.unboundedFollowing
             spec = spec.rangeBetween(start, end)
-        
+
         return spec
-    
+
     def _build_window_expr(self, spec: WindowAggSpec, window_spec) -> Column:
         """
         Construit l'expression de fenêtre.
-        
+
         Args:
             spec: Spécification d'agrégation
             window_spec: Spécification de fenêtre
-            
+
         Returns:
             Expression Column
         """
         col = F.col(spec.column) if spec.column else None
-        
+
         # Fonctions de fenêtre sans colonne
         if spec.agg_type == "row_number":
             return F.row_number().over(window_spec)
@@ -341,11 +340,11 @@ class WindowAggregationTransformer(BaseTransformer):
             return F.ntile(spec.n_tiles).over(window_spec)
         elif spec.agg_type == "cume_dist":
             return F.cume_dist().over(window_spec)
-        
+
         # Fonctions de fenêtre avec colonne
         if col is None:
             raise ValueError(f"Colonne requise pour l'agrégation: {spec.agg_type}")
-        
+
         window_funcs: dict[str, Callable[[], Column]] = {
             "sum": lambda: F.sum(col).over(window_spec),
             "avg": lambda: F.avg(col).over(window_spec),
@@ -360,18 +359,18 @@ class WindowAggregationTransformer(BaseTransformer):
             "stddev": lambda: F.stddev(col).over(window_spec),
             "variance": lambda: F.variance(col).over(window_spec),
         }
-        
+
         func = window_funcs.get(spec.agg_type)
         if not func:
             raise ValueError(f"Type d'agrégation de fenêtre non supporté: {spec.agg_type}")
-        
+
         return func()
 
 
 @dataclass
 class WindowAggSpec:
     """Spécification d'une agrégation de fenêtre."""
-    
+
     column: str | None
     agg_type: str
     alias: str
@@ -383,7 +382,7 @@ class WindowAggSpec:
 class PivotTransformer(BaseTransformer):
     """
     Transformer pour les opérations de pivot.
-    
+
     Example:
         >>> transformer = PivotTransformer(
         ...     group_by=["year"],
@@ -394,7 +393,7 @@ class PivotTransformer(BaseTransformer):
         ... )
         >>> result_df = transformer.transform(df)
     """
-    
+
     def __init__(
         self,
         group_by: list[str],
@@ -405,7 +404,7 @@ class PivotTransformer(BaseTransformer):
     ):
         """
         Initialise le PivotTransformer.
-        
+
         Args:
             group_by: Colonnes de groupement
             pivot_column: Colonne à pivoter
@@ -418,20 +417,20 @@ class PivotTransformer(BaseTransformer):
         self.agg_column = agg_column
         self.agg_func = agg_func
         self.pivot_values = pivot_values
-        
+
         logger.debug(
             "PivotTransformer initialisé",
             pivot_column=self.pivot_column,
             agg_func=self.agg_func,
         )
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique le pivot au DataFrame.
-        
+
         Args:
             df: DataFrame source
-            
+
         Returns:
             DataFrame pivoté
         """
@@ -440,28 +439,28 @@ class PivotTransformer(BaseTransformer):
             pivot_column=self.pivot_column,
             agg_func=self.agg_func,
         )
-        
+
         # Groupement
         grouped = df.groupBy(*self.group_by)
-        
+
         # Pivot avec ou sans valeurs spécifiques
         if self.pivot_values:
             pivoted = grouped.pivot(self.pivot_column, self.pivot_values)
         else:
             pivoted = grouped.pivot(self.pivot_column)
-        
+
         # Agrégation
         agg_expr = self._get_agg_expr()
         result = pivoted.agg(agg_expr)
-        
+
         logger.info(f"Pivot terminé: {len(result.columns)} colonnes")
-        
+
         return result
-    
+
     def _get_agg_expr(self) -> Column:
         """Retourne l'expression d'agrégation."""
         col = F.col(self.agg_column)
-        
+
         agg_funcs: dict[str, Callable[[], Column]] = {
             "sum": lambda: F.sum(col),
             "avg": lambda: F.avg(col),
@@ -472,18 +471,18 @@ class PivotTransformer(BaseTransformer):
             "first": lambda: F.first(col),
             "last": lambda: F.last(col),
         }
-        
+
         func = agg_funcs.get(self.agg_func.lower())
         if not func:
             raise ValueError(f"Fonction d'agrégation non supportée: {self.agg_func}")
-        
+
         return func()
 
 
 class UnpivotTransformer(BaseTransformer):
     """
     Transformer pour les opérations d'unpivot (melt).
-    
+
     Example:
         >>> transformer = UnpivotTransformer(
         ...     id_columns=["year", "product"],
@@ -493,7 +492,7 @@ class UnpivotTransformer(BaseTransformer):
         ... )
         >>> result_df = transformer.transform(df)
     """
-    
+
     def __init__(
         self,
         id_columns: list[str],
@@ -503,7 +502,7 @@ class UnpivotTransformer(BaseTransformer):
     ):
         """
         Initialise l'UnpivotTransformer.
-        
+
         Args:
             id_columns: Colonnes à conserver (identifiants)
             value_columns: Colonnes à transformer en lignes
@@ -514,20 +513,20 @@ class UnpivotTransformer(BaseTransformer):
         self.value_columns = value_columns
         self.variable_column = variable_column
         self.value_column = value_column
-        
+
         logger.debug(
             "UnpivotTransformer initialisé",
             id_columns=self.id_columns,
             value_columns=self.value_columns,
         )
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique l'unpivot au DataFrame.
-        
+
         Args:
             df: DataFrame source
-            
+
         Returns:
             DataFrame dépivoté
         """
@@ -535,31 +534,31 @@ class UnpivotTransformer(BaseTransformer):
             "Application de l'unpivot",
             value_columns=self.value_columns,
         )
-        
+
         # Utiliser stack pour l'unpivot
         # Construire l'expression stack
         stack_expr = f"stack({len(self.value_columns)}"
         for col_name in self.value_columns:
             stack_expr += f", '{col_name}', `{col_name}`"
         stack_expr += f") as ({self.variable_column}, {self.value_column})"
-        
+
         # Sélectionner les colonnes ID et appliquer stack
         result = df.select(
             *self.id_columns,
             F.expr(stack_expr),
         )
-        
+
         logger.info(f"Unpivot terminé: {result.count()} lignes")
-        
+
         return result
 
 
 class RollupTransformer(BaseTransformer):
     """
     Transformer pour les opérations ROLLUP.
-    
+
     Crée des sous-totaux hiérarchiques.
-    
+
     Example:
         >>> transformer = RollupTransformer(
         ...     columns=["region", "country", "city"],
@@ -569,7 +568,7 @@ class RollupTransformer(BaseTransformer):
         ... )
         >>> result_df = transformer.transform(df)
     """
-    
+
     def __init__(
         self,
         columns: list[str],
@@ -577,47 +576,45 @@ class RollupTransformer(BaseTransformer):
     ):
         """
         Initialise le RollupTransformer.
-        
+
         Args:
             columns: Colonnes pour le rollup (ordre hiérarchique)
             aggregations: Agrégations à appliquer
         """
         self.columns = columns
         self.aggregations = aggregations
-        
+
         logger.debug(
             "RollupTransformer initialisé",
             columns=self.columns,
         )
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique le rollup au DataFrame.
-        
+
         Args:
             df: DataFrame source
-            
+
         Returns:
             DataFrame avec sous-totaux
         """
         logger.info("Application du rollup", columns=self.columns)
-        
+
         # Construire les expressions d'agrégation
-        agg_exprs = [
-            self._build_agg_expr(spec) for spec in self.aggregations
-        ]
-        
+        agg_exprs = [self._build_agg_expr(spec) for spec in self.aggregations]
+
         # Appliquer rollup
         result = df.rollup(*self.columns).agg(*agg_exprs)
-        
+
         logger.info(f"Rollup terminé: {result.count()} lignes")
-        
+
         return result
-    
+
     def _build_agg_expr(self, spec: AggregationSpec) -> Column:
         """Construit l'expression d'agrégation."""
         col = F.col(spec.column)
-        
+
         agg_map = {
             AggregationType.SUM: F.sum(col),
             AggregationType.COUNT: F.count(col),
@@ -625,20 +622,20 @@ class RollupTransformer(BaseTransformer):
             AggregationType.MIN: F.min(col),
             AggregationType.MAX: F.max(col),
         }
-        
+
         agg_expr = agg_map.get(spec.agg_type)
         if not agg_expr:
             raise ValueError(f"Type non supporté pour rollup: {spec.agg_type}")
-        
+
         return agg_expr.alias(spec.alias)
 
 
 class CubeTransformer(BaseTransformer):
     """
     Transformer pour les opérations CUBE.
-    
+
     Crée toutes les combinaisons de sous-totaux possibles.
-    
+
     Example:
         >>> transformer = CubeTransformer(
         ...     columns=["region", "product"],
@@ -648,7 +645,7 @@ class CubeTransformer(BaseTransformer):
         ... )
         >>> result_df = transformer.transform(df)
     """
-    
+
     def __init__(
         self,
         columns: list[str],
@@ -656,44 +653,42 @@ class CubeTransformer(BaseTransformer):
     ):
         """
         Initialise le CubeTransformer.
-        
+
         Args:
             columns: Colonnes pour le cube
             aggregations: Agrégations à appliquer
         """
         self.columns = columns
         self.aggregations = aggregations
-        
+
         logger.debug("CubeTransformer initialisé", columns=self.columns)
-    
+
     def transform(self, df: DataFrame) -> DataFrame:
         """
         Applique le cube au DataFrame.
-        
+
         Args:
             df: DataFrame source
-            
+
         Returns:
             DataFrame avec toutes les combinaisons de sous-totaux
         """
         logger.info("Application du cube", columns=self.columns)
-        
+
         # Construire les expressions d'agrégation
-        agg_exprs = [
-            self._build_agg_expr(spec) for spec in self.aggregations
-        ]
-        
+        agg_exprs = [self._build_agg_expr(spec) for spec in self.aggregations]
+
         # Appliquer cube
         result = df.cube(*self.columns).agg(*agg_exprs)
-        
+
         logger.info(f"Cube terminé: {result.count()} lignes")
-        
+
         return result
-    
+
     def _build_agg_expr(self, spec: AggregationSpec) -> Column:
         """Construit l'expression d'agrégation."""
         col = F.col(spec.column)
-        
+
         agg_map = {
             AggregationType.SUM: F.sum(col),
             AggregationType.COUNT: F.count(col),
@@ -701,11 +696,11 @@ class CubeTransformer(BaseTransformer):
             AggregationType.MIN: F.min(col),
             AggregationType.MAX: F.max(col),
         }
-        
+
         agg_expr = agg_map.get(spec.agg_type)
         if not agg_expr:
             raise ValueError(f"Type non supporté pour cube: {spec.agg_type}")
-        
+
         return agg_expr.alias(spec.alias)
 
 
@@ -717,15 +712,15 @@ def aggregate_by_group(
 ) -> DataFrame:
     """
     Agrégation simplifiée avec dictionnaire.
-    
+
     Args:
         df: DataFrame source
         group_by: Colonnes de groupement
         agg_dict: Dictionnaire {colonne: fonction_agg}
-        
+
     Returns:
         DataFrame agrégé
-        
+
     Example:
         >>> result = aggregate_by_group(
         ...     df,
@@ -734,10 +729,10 @@ def aggregate_by_group(
         ... )
     """
     agg_exprs = []
-    
+
     for col_name, agg_func in agg_dict.items():
         col = F.col(col_name)
-        
+
         func_map = {
             "sum": F.sum(col),
             "avg": F.avg(col),
@@ -749,11 +744,11 @@ def aggregate_by_group(
             "last": F.last(col),
             "count_distinct": F.countDistinct(col),
         }
-        
+
         expr = func_map.get(agg_func.lower())
         if expr:
             agg_exprs.append(expr.alias(f"{col_name}_{agg_func}"))
-    
+
     return df.groupBy(*group_by).agg(*agg_exprs)
 
 
@@ -766,21 +761,23 @@ def add_running_total(
 ) -> DataFrame:
     """
     Ajoute une colonne de total cumulé.
-    
+
     Args:
         df: DataFrame source
         partition_by: Colonnes de partitionnement
         order_by: Colonne de tri
         value_column: Colonne à cumuler
         result_column: Nom de la colonne résultat
-        
+
     Returns:
         DataFrame avec total cumulé
     """
-    window = Window.partitionBy(*partition_by).orderBy(order_by).rowsBetween(
-        Window.unboundedPreceding, Window.currentRow
+    window = (
+        Window.partitionBy(*partition_by)
+        .orderBy(order_by)
+        .rowsBetween(Window.unboundedPreceding, Window.currentRow)
     )
-    
+
     return df.withColumn(result_column, F.sum(F.col(value_column)).over(window))
 
 
@@ -794,7 +791,7 @@ def add_rank(
 ) -> DataFrame:
     """
     Ajoute une colonne de rang.
-    
+
     Args:
         df: DataFrame source
         partition_by: Colonnes de partitionnement
@@ -802,13 +799,13 @@ def add_rank(
         result_column: Nom de la colonne résultat
         ascending: Ordre ascendant ou descendant
         dense: Si True, utilise dense_rank
-        
+
     Returns:
         DataFrame avec rang
     """
     order_col = F.col(order_by).asc() if ascending else F.col(order_by).desc()
     window = Window.partitionBy(*partition_by).orderBy(order_col)
-    
+
     rank_func = F.dense_rank() if dense else F.rank()
-    
+
     return df.withColumn(result_column, rank_func.over(window))

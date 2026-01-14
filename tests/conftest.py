@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Generator
+from collections.abc import Generator
+from typing import TYPE_CHECKING
 
 import pytest
 from pyspark.sql import SparkSession
@@ -15,17 +16,15 @@ if TYPE_CHECKING:
 def spark() -> Generator[SparkSession, None, None]:
     """
     Crée une SparkSession pour les tests.
-    
+
     Scope session pour réutiliser la même session.
     """
     spark = (
-        SparkSession.builder
-        .master("local[2]")
+        SparkSession.builder.master("local[2]")
         .appName("pytest-spark")
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(
-            "spark.sql.catalog.spark_catalog",
-            "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+            "spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog"
         )
         .config("spark.sql.shuffle.partitions", "2")
         .config("spark.default.parallelism", "2")
@@ -33,11 +32,11 @@ def spark() -> Generator[SparkSession, None, None]:
         .config("spark.driver.bindAddress", "127.0.0.1")
         .getOrCreate()
     )
-    
+
     spark.sparkContext.setLogLevel("WARN")
-    
+
     yield spark
-    
+
     spark.stop()
 
 
@@ -51,10 +50,9 @@ def sample_orders_df(spark: SparkSession) -> DataFrame:
         ("ORD004", "CUST003", "2024-01-16", 500.00, "completed"),
         ("ORD005", "CUST002", "2024-01-17", 150.75, "cancelled"),
     ]
-    
+
     return spark.createDataFrame(
-        data,
-        ["order_id", "customer_id", "order_date", "amount", "status"]
+        data, ["order_id", "customer_id", "order_date", "amount", "status"]
     )
 
 
@@ -66,11 +64,8 @@ def sample_customers_df(spark: SparkSession) -> DataFrame:
         ("CUST002", "Jane Smith", "jane@example.com", "UK"),
         ("CUST003", "Bob Wilson", "bob@example.com", "DE"),
     ]
-    
-    return spark.createDataFrame(
-        data,
-        ["customer_id", "name", "email", "country"]
-    )
+
+    return spark.createDataFrame(data, ["customer_id", "name", "email", "country"])
 
 
 @pytest.fixture

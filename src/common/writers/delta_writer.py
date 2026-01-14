@@ -32,7 +32,7 @@ class DeltaWriter(BaseWriter):
         """
         super().__init__(spark, config)
         self._validate_config(["path"])
-        
+
         # Appliquer la config
         if "mode" in config:
             self.with_mode(config["mode"])
@@ -103,9 +103,7 @@ class DeltaWriter(BaseWriter):
         # Construire la condition de merge
         merge_condition = self.config.get("merge_condition")
         if not merge_condition:
-            merge_condition = " AND ".join(
-                [f"target.{key} = source.{key}" for key in merge_keys]
-            )
+            merge_condition = " AND ".join([f"target.{key} = source.{key}" for key in merge_keys])
 
         # Exécuter le merge
         (
