@@ -141,7 +141,9 @@ class TestSalesPipelineIntegration:
             "_source", F.lit("test_source")
         )
 
-        bronze_df.write.format("delta").mode("overwrite").save(integration_paths["bronze"])
+        bronze_df.write.format("delta").mode("overwrite").option("mergeSchema", "true").save(
+            integration_paths["bronze"]
+        )
 
         # Silver
         silver_df = (
@@ -154,7 +156,9 @@ class TestSalesPipelineIntegration:
             )
         )
 
-        silver_df.write.format("delta").mode("overwrite").save(integration_paths["silver"])
+        silver_df.write.format("delta").mode("overwrite").option("mergeSchema", "true").save(
+            integration_paths["silver"]
+        )
 
         # Vérifier les métadonnées
         result = spark.read.format("delta").load(integration_paths["silver"])
