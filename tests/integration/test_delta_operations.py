@@ -958,7 +958,7 @@ class TestDeltaAdvanced:
         )
 
         # Tenter d'insérer une valeur invalide
-        with pytest.raises(Exception):  # Catches Py4JJavaError wrapping DeltaInvariantViolationException
+        with pytest.raises(Exception):  # noqa: B017 - Catches Py4JJavaError wrapping DeltaInvariantViolationException
             bad_df = spark.createDataFrame([{"id": 2, "price": -50.0}])
             bad_df.write.format("delta").mode("append").save(table_path)
 
