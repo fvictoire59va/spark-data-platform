@@ -37,20 +37,25 @@ def spark() -> Generator[SparkSession, None, None]:
     os.makedirs(local_dir, exist_ok=True)
 
     spark = (
-        SparkSession.builder.master("local[2]")
+        SparkSession.builder.master("local[1]")
         .appName("pytest-spark")
         .config("spark.jars.packages", "io.delta:delta-spark_2.12:3.2.0")
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(
             "spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog"
         )
-        .config("spark.sql.shuffle.partitions", "2")
-        .config("spark.default.parallelism", "2")
+        .config("spark.sql.shuffle.partitions", "1")
+        .config("spark.default.parallelism", "1")
         .config("spark.ui.enabled", "false")
+        .config("spark.driver.host", "127.0.0.1")
         .config("spark.driver.bindAddress", "127.0.0.1")
+        .config("spark.driver.port", "0")
+        .config("spark.blockManager.port", "0")
         .config("spark.sql.warehouse.dir", warehouse_dir)
         .config("spark.driver.memory", "2g")
         .config("spark.local.dir", local_dir)
+        .config("spark.network.timeout", "600s")
+        .config("spark.executor.heartbeatInterval", "60s")
         .getOrCreate()
     )
 
