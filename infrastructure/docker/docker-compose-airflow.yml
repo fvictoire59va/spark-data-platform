@@ -1,0 +1,282 @@
+services:
+  # ============ SPARK MASTER ============
+  spark-master:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark-base
+      args:
+        - SPARK_VERSION=${SPARK_VERSION:-3.5.0}
+    container_name: spark-master
+    hostname: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_HOME=/opt/spark
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+    ports:
+      - "8080:8080"   # Web UI
+      - "7077:7077"   # Master port
+      - "4040:4040"   # Application UI
+    volumes:
+      - ./logs/spark-master:/opt/spark/logs
+      - ./data:/opt/spark/data
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: >
+      bash -c "
+        ${SPARK_HOME}/sbin/start-master.sh && 
+        tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.master.Master-*.out
+      "
+
+  # ============ SPARK WORKERS ============
+  spark-worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark-base
+      args:
+        - SPARK_VERSION=${SPARK_VERSION:-3.5.0}
+    container_name: spark-worker-1
+    hostname: spark-worker-1
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_HOME=/opt/spark
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_WORKER_WEBUI_PORT=8081
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./logs/spark-worker-1:/opt/spark/logs
+      - ./data:/opt/spark/data
+    networks:
+      - spark-network
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    command: >
+      bash -c "
+        ${SPARK_HOME}/sbin/start-worker.sh spark://spark-master:7077 && 
+        tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.worker.Worker-*.out
+      "
+
+  spark-worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark-base
+      args:
+        - SPARK_VERSION=${SPARK_VERSION:-3.5.0}
+    container_name: spark-worker-2
+    hostname: spark-worker-2
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_HOME=/opt/spark
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_WORKER_WEBUI_PORT=8082
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./logs/spark-worker-2:/opt/spark/logs
+      - ./data:/opt/spark/data
+    networks:
+      - spark-network
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    command: >
+      bash -c "
+        ${SPARK_HOME}/sbin/start-worker.sh spark://spark-master:7077 && 
+        tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.worker.Worker-*.out
+      "
+
+  # ============ SPARK HISTORY SERVER ============
+  spark-history:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark-base
+      args:
+        - SPARK_VERSION=${SPARK_VERSION:-3.5.0}
+    container_name: spark-history
+    hostname: spark-history
+    environment:
+      - SPARK_HOME=/opt/spark
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/opt/spark/history
+    ports:
+      - "18080:18080"
+    volumes:
+      - ./logs/spark-history:/opt/spark/history
+    networks:
+      - spark-network
+    command: >
+      bash -c "
+        mkdir -p /opt/spark/history &&
+        ${SPARK_HOME}/sbin/start-history-server.sh &&
+        tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.history.HistoryServer-*.out
+      "
+
+  # ============ MINIO (S3 Compatible) ============
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    hostname: minio
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    volumes:
+      - ./minio-data:/data
+    networks:
+      - spark-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============ DELTA LAKE METASTORE (PostgreSQL) ============
+  metastore-db:
+    image: postgres:15-alpine
+    container_name: metastore-db
+    hostname: metastore-db
+    environment:
+      - POSTGRES_USER=hive
+      - POSTGRES_PASSWORD=hive123
+      - POSTGRES_DB=metastore
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hive -d metastore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============ AIRFLOW POSTGRES BACKEND ============
+  airflow-db:
+    image: postgres:15-alpine
+    container_name: airflow-db
+    hostname: airflow-db
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./airflow-data:/var/lib/postgresql/data
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============ AIRFLOW WEBSERVER ============
+  airflow-webserver:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.airflow
+    container_name: airflow-webserver
+    hostname: airflow-webserver
+    environment:
+      - AIRFLOW_HOME=/opt/airflow
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__SCHEDULER__CATCHUP_BY_DEFAULT=False
+      - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=300
+      - AIRFLOW_CONN_SPARK_DEFAULT=spark://spark-master:7077
+    ports:
+      - "8888:8080"
+    volumes:
+      - ../../orchestration/airflow/dags:/opt/airflow/dags
+      - ../../orchestration/airflow/plugins:/opt/airflow/plugins
+      - ./logs/airflow:/opt/airflow/logs
+    networks:
+      - spark-network
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+    command: >
+      bash -c "
+        airflow db init &&
+        airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com ||
+        true &&
+        airflow webserver --port 8080
+      "
+
+  # ============ AIRFLOW SCHEDULER ============
+  airflow-scheduler:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.airflow
+    container_name: airflow-scheduler
+    hostname: airflow-scheduler
+    environment:
+      - AIRFLOW_HOME=/opt/airflow
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__SCHEDULER__CATCHUP_BY_DEFAULT=False
+      - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=300
+      - AIRFLOW_CONN_SPARK_DEFAULT=spark://spark-master:7077
+    volumes:
+      - ../../orchestration/airflow/dags:/opt/airflow/dags
+      - ../../orchestration/airflow/plugins:/opt/airflow/plugins
+      - ./logs/airflow:/opt/airflow/logs
+    networks:
+      - spark-network
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+    command: airflow scheduler
+
+  # ============ JUPYTER NOTEBOOK ============
+  jupyter:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.spark-job
+    container_name: jupyter
+    hostname: jupyter
+    environment:
+      - SPARK_HOME=/opt/spark
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN:-spark123}
+    ports:
+      - "8889:8888"
+    volumes:
+      - ../../notebooks:/workspace/notebooks
+      - ./logs:/workspace/logs
+      - ./data:/workspace/data
+    networks:
+      - spark-network
+    depends_on:
+      - spark-master
+    command: >
+      bash -c "
+        pip install jupyterlab &&
+        jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='${JUPYTER_TOKEN:-spark123}'
+      "
+
+networks:
+  spark-network:
+    driver: bridge
+
+volumes: {}

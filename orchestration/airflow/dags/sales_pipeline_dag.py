@@ -15,37 +15,20 @@ default_args = {
     "email_on_failure": True,
     "email_on_retry": False,
     "email": ["data-alerts@company.com"],
-    "retries": 2,
+    "retries": 1,
     "retry_delay": timedelta(minutes=5),
     "execution_timeout": timedelta(hours=2),
 }
 
 # Configuration Spark commune
 SPARK_CONN_ID = "spark_default"
+SPARK_MASTER = "spark://spark-master:7077"
 SPARK_CONFIG = {
-    "spark.executor.memory": "4g",
+    "spark.executor.memory": "2g",
     "spark.executor.cores": "2",
-    "spark.executor.instances": "4",
-    "spark.sql.shuffle.partitions": "200",
-    "spark.sql.adaptive.enabled": "true",
+    "spark.executor.instances": "2",
+    "spark.sql.shuffle.partitions": "100",
 }
-
-
-def get_spark_submit_operator(
-    task_id: str,
-    job_class: str,
-    **kwargs,
-) -> SparkSubmitOperator:
-    """Factory pour créer des SparkSubmitOperator standardisés."""
-    return SparkSubmitOperator(
-        task_id=task_id,
-        conn_id=SPARK_CONN_ID,
-        application="${SPARK_HOME}/jobs/spark-data-platform.jar",
-        java_class=job_class,
-        conf=SPARK_CONFIG,
-        verbose=True,
-        **kwargs,
-    )
 
 
 with DAG(
@@ -64,34 +47,27 @@ with DAG(
 
     # ============ BRONZE LAYER ============
     with TaskGroup("bronze_layer", tooltip="Ingestion vers Bronze") as bronze_group:
-        
+
         ingest_orders = SparkSubmitOperator(
             task_id="ingest_orders",
-            conn_id=SPARK_CONN_ID,
-            application="/opt/spark/jobs/src/pipelines/sales/jobs/ingest_orders.py",
+            application="local:///opt/spark-apps/ingest_orders.py",
             conf={
                 **SPARK_CONFIG,
                 "spark.app.name": "sales_ingest_orders",
             },
-            application_args=[
-                "--env", "{{ var.value.environment }}",
-                "--date", "{{ ds }}",
-            ],
+            conn_id=SPARK_CONN_ID,
             verbose=True,
+            packages="org.postgresql:postgresql:42.6.0",
         )
 
         ingest_customers = SparkSubmitOperator(
             task_id="ingest_customers",
-            conn_id=SPARK_CONN_ID,
-            application="/opt/spark/jobs/src/pipelines/sales/jobs/ingest_customers.py",
+            application="local:///opt/spark-apps/ingest_customers.py",
             conf={
                 **SPARK_CONFIG,
                 "spark.app.name": "sales_ingest_customers",
             },
-            application_args=[
-                "--env", "{{ var.value.environment }}",
-                "--date", "{{ ds }}",
-            ],
+            conn_id=SPARK_CONN_ID,
             verbose=True,
         )
 
@@ -99,57 +75,31 @@ with DAG(
 
     # ============ SILVER LAYER ============
     with TaskGroup("silver_layer", tooltip="Transformation vers Silver") as silver_group:
-        
+
         transform_orders = SparkSubmitOperator(
             task_id="transform_orders",
-            conn_id=SPARK_CONN_ID,
-            application="/opt/spark/jobs/src/pipelines/sales/jobs/transform_orders.py",
+            application="local:///opt/spark-apps/transform_orders.py",
             conf={
                 **SPARK_CONFIG,
                 "spark.app.name": "sales_transform_orders",
             },
-            application_args=[
-                "--env", "{{ var.value.environment }}",
-                "--date", "{{ ds }}",
-            ],
+            conn_id=SPARK_CONN_ID,
             verbose=True,
         )
 
     # ============ GOLD LAYER ============
     with TaskGroup("gold_layer", tooltip="Agrégation vers Gold") as gold_group:
-        
+
         aggregate_sales = SparkSubmitOperator(
             task_id="aggregate_sales",
-            conn_id=SPARK_CONN_ID,
-            application="/opt/spark/jobs/src/pipelines/sales/jobs/aggregate_sales.py",
+            application="local:///opt/spark-apps/aggregate_sales.py",
             conf={
                 **SPARK_CONFIG,
                 "spark.app.name": "sales_aggregate",
             },
-            application_args=[
-                "--env", "{{ var.value.environment }}",
-                "--date", "{{ ds }}",
-            ],
-            verbose=True,
-        )
-
-    # ============ DATA QUALITY ============
-    with TaskGroup("data_quality", tooltip="Contrôles qualité") as quality_group:
-        
-        quality_checks = SparkSubmitOperator(
-            task_id="quality_checks",
             conn_id=SPARK_CONN_ID,
-            application="/opt/spark/jobs/src/pipelines/sales/jobs/quality_checks.py",
-            conf={
-                **SPARK_CONFIG,
-                "spark.app.name": "sales_quality_checks",
-            },
-            application_args=[
-                "--env", "{{ var.value.environment }}",
-                "--date", "{{ ds }}",
-            ],
             verbose=True,
         )
 
     # ============ DEPENDENCIES ============
-    start >> bronze_group >> silver_group >> gold_group >> quality_group >> end
+    start >> bronze_group >> silver_group >> gold_group >> end
