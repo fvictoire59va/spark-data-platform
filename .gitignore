@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv
+env/
+ENV/
+.venv*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+test-results/
+
+# Logs
+logs/
+*.log
+
+# Docker volumes and data
+minio-data/
+postgres-data/
+infrastructure/docker/logs/
+infrastructure/docker/minio-data/
+infrastructure/docker/postgres-data/
+
+# Data directories (local development)
+data/raw/
+data/processed/
+data/output/
+
+# Poetry
+poetry.lock
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Spark
+spark-warehouse/
+metastore_db/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checksum

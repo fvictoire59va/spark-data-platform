@@ -19,7 +19,7 @@ services:
       - "7077:7077"   # Master port
       - "4040:4040"   # Application UI
     volumes:
-      - spark-logs:/opt/spark/logs
+      - ./logs/spark-master:/opt/spark/logs
       - ./data:/opt/spark/data
     networks:
       - spark-network
@@ -53,7 +53,7 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - spark-logs:/opt/spark/logs
+      - ./logs/spark-worker-1:/opt/spark/logs
       - ./data:/opt/spark/data
     networks:
       - spark-network
@@ -84,7 +84,7 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - spark-logs:/opt/spark/logs
+      - ./logs/spark-worker-2:/opt/spark/logs
       - ./data:/opt/spark/data
     networks:
       - spark-network
@@ -112,7 +112,7 @@ services:
     ports:
       - "18080:18080"
     volumes:
-      - spark-history:/opt/spark/history
+      - ./logs/spark-history:/opt/spark/history
     networks:
       - spark-network
     command: >
@@ -134,7 +134,7 @@ services:
       - "9000:9000"   # API
       - "9001:9001"   # Console
     volumes:
-      - minio-data:/data
+      - ./minio-data:/data
     networks:
       - spark-network
     command: server /data --console-address ":9001"
@@ -156,7 +156,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data
     networks:
       - spark-network
     healthcheck:
@@ -195,8 +195,4 @@ networks:
   spark-network:
     driver: bridge
 
-volumes:
-  spark-logs:
-  spark-history:
-  minio-data:
-  postgres-data:
+volumes: {}

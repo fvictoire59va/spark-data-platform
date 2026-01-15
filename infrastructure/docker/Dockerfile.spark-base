@@ -43,6 +43,11 @@ RUN curl -fsSL "https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/${DELTA
 COPY conf/spark-defaults.conf ${SPARK_HOME}/conf/spark-defaults.conf
 COPY conf/log4j2.properties ${SPARK_HOME}/conf/log4j2.properties
 
+# Création des répertoires nécessaires avec bonnes permissions
+RUN mkdir -p /opt/spark/logs /opt/spark/data && \
+    chmod -R 777 /opt/spark/logs /opt/spark/data && \
+    chmod -R 777 ${SPARK_HOME}/conf
+
 # Création de l'utilisateur spark
 RUN groupadd -r spark && useradd -r -g spark spark \
     && mkdir -p /home/spark \
