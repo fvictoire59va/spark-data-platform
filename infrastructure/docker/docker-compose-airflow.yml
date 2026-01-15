@@ -30,7 +30,7 @@ services:
       retries: 3
     command: >
       bash -c "
-        ${SPARK_HOME}/sbin/start-master.sh && 
+        ${SPARK_HOME}/sbin/start-master.sh &&
         tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.master.Master-*.out
       "
 
@@ -62,7 +62,7 @@ services:
         condition: service_healthy
     command: >
       bash -c "
-        ${SPARK_HOME}/sbin/start-worker.sh spark://spark-master:7077 && 
+        ${SPARK_HOME}/sbin/start-worker.sh spark://spark-master:7077 &&
         tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.worker.Worker-*.out
       "
 
@@ -93,7 +93,7 @@ services:
         condition: service_healthy
     command: >
       bash -c "
-        ${SPARK_HOME}/sbin/start-worker.sh spark://spark-master:7077 && 
+        ${SPARK_HOME}/sbin/start-worker.sh spark://spark-master:7077 &&
         tail -f ${SPARK_HOME}/logs/spark--org.apache.spark.deploy.worker.Worker-*.out
       "
 
@@ -251,8 +251,8 @@ services:
   # ============ JUPYTER NOTEBOOK ============
   jupyter:
     build:
-      context: ../..
-      dockerfile: infrastructure/docker/Dockerfile.spark-job
+      context: .
+      dockerfile: Dockerfile.jupyter
     container_name: jupyter
     hostname: jupyter
     environment:
@@ -263,7 +263,7 @@ services:
       - "8889:8888"
     volumes:
       - ../../notebooks:/workspace/notebooks
-      - ./logs:/workspace/logs
+      - ./logs/jupyter:/workspace/logs
       - ./data:/workspace/data
     networks:
       - spark-network
@@ -271,8 +271,7 @@ services:
       - spark-master
     command: >
       bash -c "
-        pip install jupyterlab &&
-        jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='${JUPYTER_TOKEN:-spark123}'
+        jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --ServerApp.token='spark123'
       "
 
 networks:

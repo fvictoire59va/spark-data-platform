@@ -1,11 +1,12 @@
 """DAG Airflow pour le pipeline Sales."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
 
 from airflow import DAG
+from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.utils.task_group import TaskGroup
 
 # Configuration par défaut
@@ -21,14 +22,24 @@ default_args = {
 }
 
 # Configuration Spark commune
-SPARK_CONN_ID = "spark_default"
 SPARK_MASTER = "spark://spark-master:7077"
-SPARK_CONFIG = {
-    "spark.executor.memory": "2g",
-    "spark.executor.cores": "2",
-    "spark.executor.instances": "2",
-    "spark.sql.shuffle.partitions": "100",
-}
+SPARK_SUBMIT = "/opt/spark/bin/spark-submit"
+SPARK_CONF = (
+    "--master {{ params.spark_master }} "
+    "--deploy-mode client "
+    "--executor-memory 2g "
+    "--executor-cores 2 "
+    "--num-executors 2 "
+    "--conf spark.sql.shuffle.partitions=100 "
+    "--packages org.postgresql:postgresql:42.6.0,io.delta:delta-spark_2.12:3.2.0 "
+    "--conf spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension "
+    "--conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog"
+)
+
+
+def spark_submit_cmd(app_name: str, app_path: str) -> str:
+    """Génère la commande spark-submit."""
+    return f"{SPARK_SUBMIT} {SPARK_CONF} --name {app_name} {app_path}"
 
 
 with DAG(
@@ -40,6 +51,7 @@ with DAG(
     catchup=False,
     tags=["sales", "etl", "daily"],
     max_active_runs=1,
+    params={"spark_master": SPARK_MASTER},
 ) as dag:
 
     start = EmptyOperator(task_id="start")
@@ -48,57 +60,38 @@ with DAG(
     # ============ BRONZE LAYER ============
     with TaskGroup("bronze_layer", tooltip="Ingestion vers Bronze") as bronze_group:
 
-        ingest_orders = SparkSubmitOperator(
+        ingest_orders = BashOperator(
             task_id="ingest_orders",
-            application="local:///opt/spark-apps/ingest_orders.py",
-            conf={
-                **SPARK_CONFIG,
-                "spark.app.name": "sales_ingest_orders",
-            },
-            conn_id=SPARK_CONN_ID,
-            verbose=True,
-            packages="org.postgresql:postgresql:42.6.0",
+            bash_command=spark_submit_cmd(
+                "sales_ingest_orders", "/opt/spark-apps/ingest_orders.py"
+            ),
         )
 
-        ingest_customers = SparkSubmitOperator(
+        ingest_customers = BashOperator(
             task_id="ingest_customers",
-            application="local:///opt/spark-apps/ingest_customers.py",
-            conf={
-                **SPARK_CONFIG,
-                "spark.app.name": "sales_ingest_customers",
-            },
-            conn_id=SPARK_CONN_ID,
-            verbose=True,
+            bash_command=spark_submit_cmd(
+                "sales_ingest_customers", "/opt/spark-apps/ingest_customers.py"
+            ),
         )
 
-        [ingest_orders, ingest_customers]
+        ingest_orders >> ingest_customers
 
     # ============ SILVER LAYER ============
     with TaskGroup("silver_layer", tooltip="Transformation vers Silver") as silver_group:
 
-        transform_orders = SparkSubmitOperator(
+        transform_orders = BashOperator(
             task_id="transform_orders",
-            application="local:///opt/spark-apps/transform_orders.py",
-            conf={
-                **SPARK_CONFIG,
-                "spark.app.name": "sales_transform_orders",
-            },
-            conn_id=SPARK_CONN_ID,
-            verbose=True,
+            bash_command=spark_submit_cmd(
+                "sales_transform_orders", "/opt/spark-apps/transform_orders.py"
+            ),
         )
 
     # ============ GOLD LAYER ============
     with TaskGroup("gold_layer", tooltip="Agrégation vers Gold") as gold_group:
 
-        aggregate_sales = SparkSubmitOperator(
+        aggregate_sales = BashOperator(
             task_id="aggregate_sales",
-            application="local:///opt/spark-apps/aggregate_sales.py",
-            conf={
-                **SPARK_CONFIG,
-                "spark.app.name": "sales_aggregate",
-            },
-            conn_id=SPARK_CONN_ID,
-            verbose=True,
+            bash_command=spark_submit_cmd("sales_aggregate", "/opt/spark-apps/aggregate_sales.py"),
         )
 
     # ============ DEPENDENCIES ============

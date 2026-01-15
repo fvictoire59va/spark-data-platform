@@ -1,14 +1,31 @@
 FROM apache/airflow:2.7.0-python3.11
 
-# Installer les dépendances supplémentaires
-RUN pip install --no-cache-dir \
-    apache-airflow-providers-apache-spark==4.8.0 \
-    apache-airflow-providers-postgres==5.9.0 \
-    pyspark==3.5.0 \
-    delta-spark==3.2.0 \
-    psycopg2-binary==2.9.9
+USER root
 
-# Copier les DAGs
-COPY orchestration/airflow/dags /opt/airflow/dags
+# Installer Java (requis pour spark-submit)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openjdk-11-jre-headless \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+
+# Télécharger Spark (pour spark-submit)
+ENV SPARK_VERSION=3.5.0
+ENV SPARK_HOME=/opt/spark
+RUN curl -fsSL https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz \
+    | tar -xz -C /opt \
+    && mv /opt/spark-${SPARK_VERSION}-bin-hadoop3 ${SPARK_HOME} \
+    && chown -R airflow:root ${SPARK_HOME}
+
+ENV PATH="${SPARK_HOME}/bin:${PATH}"
+
+USER airflow
+
+# Providers légers uniquement (pas de grpcio lourd)
+RUN pip install --no-cache-dir \
+    apache-airflow-providers-postgres==5.9.0 \
+    psycopg2-binary==2.9.9
 
 WORKDIR /opt/airflow

@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+# Installer Jupyter et les dépendances
+RUN pip install --no-cache-dir \
+    jupyterlab==4.0.9 \
+    pyspark==3.5.0 \
+    pandas==2.1.4 \
+    numpy==1.24.3 \
+    matplotlib==3.8.2 \
+    plotly==5.18.0 \
+    delta-spark==3.2.0
+
+WORKDIR /workspace
+
+# Créer des répertoires
+RUN mkdir -p /workspace/{notebooks,data,logs}
+
+EXPOSE 8888
+
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
