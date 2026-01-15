@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   security-events: write
+  packages: write
 
 env:
   PYTHON_VERSION: "3.11"
