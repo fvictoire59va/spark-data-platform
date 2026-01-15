@@ -22,9 +22,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ssh \
     net-tools \
     ca-certificates \
-    python3 \
+    python3.11 \
+    python3.11-distutils \
     python3-pip \
     python3-venv \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Téléchargement et installation de Spark

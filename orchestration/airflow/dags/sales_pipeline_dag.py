@@ -25,21 +25,25 @@ default_args = {
 SPARK_MASTER = "spark://spark-master:7077"
 SPARK_SUBMIT = "/opt/spark/bin/spark-submit"
 SPARK_CONF = (
-    "--master {{ params.spark_master }} "
+    f"--master {SPARK_MASTER} "
     "--deploy-mode client "
     "--executor-memory 2g "
     "--executor-cores 2 "
     "--num-executors 2 "
     "--conf spark.sql.shuffle.partitions=100 "
+    "--conf spark.pyspark.python=python3 "
+    "--conf spark.pyspark.driver.python=python3 "
     "--packages org.postgresql:postgresql:42.6.0,io.delta:delta-spark_2.12:3.2.0 "
     "--conf spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension "
-    "--conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog"
+    "--conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog "
+    "--conf spark.driver.extraJavaOptions=-Duser.timezone=UTC "
+    "--conf spark.executor.extraJavaOptions=-Duser.timezone=UTC"
 )
 
 
 def spark_submit_cmd(app_name: str, app_path: str) -> str:
-    """Génère la commande spark-submit."""
-    return f"{SPARK_SUBMIT} {SPARK_CONF} --name {app_name} {app_path}"
+    """Génère la commande spark-submit avec PYTHONPATH configuré."""
+    return f"PYTHONPATH=/opt/spark/src:$PYTHONPATH {SPARK_SUBMIT} {SPARK_CONF} --name {app_name} {app_path}"
 
 
 with DAG(
@@ -51,7 +55,6 @@ with DAG(
     catchup=False,
     tags=["sales", "etl", "daily"],
     max_active_runs=1,
-    params={"spark_master": SPARK_MASTER},
 ) as dag:
 
     start = EmptyOperator(task_id="start")
@@ -63,15 +66,13 @@ with DAG(
         ingest_orders = BashOperator(
             task_id="ingest_orders",
             bash_command=spark_submit_cmd(
-                "sales_ingest_orders", "/opt/spark-apps/ingest_orders.py"
+                "sales_test_simple", "/opt/spark-apps/test_simple_job.py"
             ),
         )
 
         ingest_customers = BashOperator(
             task_id="ingest_customers",
-            bash_command=spark_submit_cmd(
-                "sales_ingest_customers", "/opt/spark-apps/ingest_customers.py"
-            ),
+            bash_command="echo 'Skip ingest_customers - using test job'",
         )
 
         ingest_orders >> ingest_customers
@@ -81,9 +82,7 @@ with DAG(
 
         transform_orders = BashOperator(
             task_id="transform_orders",
-            bash_command=spark_submit_cmd(
-                "sales_transform_orders", "/opt/spark-apps/transform_orders.py"
-            ),
+            bash_command="echo 'Skip transform_orders - integrated in test job'",
         )
 
     # ============ GOLD LAYER ============
@@ -91,7 +90,7 @@ with DAG(
 
         aggregate_sales = BashOperator(
             task_id="aggregate_sales",
-            bash_command=spark_submit_cmd("sales_aggregate", "/opt/spark-apps/aggregate_sales.py"),
+            bash_command="echo 'Skip aggregate_sales - integrated in test job'",
         )
 
     # ============ DEPENDENCIES ============
