@@ -1,0 +1,48 @@
+# Configuration Staging - Pipeline Sales
+pipeline:
+  name: sales_orders_pipeline
+  version: "1.0.0"
+  owner: data-team
+
+sources:
+  orders:
+    type: jdbc
+    url: ${JDBC_URL}
+    table: sales.orders
+    user: ${JDBC_USER}
+    password: ${JDBC_PASSWORD}
+    fetch_size: 8000
+
+  customers:
+    type: delta
+    path: /data/lake/silver/customers
+
+targets:
+  bronze:
+    type: delta
+    path: /data/lake/bronze/sales/orders
+    mode: append
+    partition_by:
+      - order_date
+
+  silver:
+    type: delta
+    path: /data/lake/silver/sales/orders
+    mode: merge
+    merge_keys:
+      - order_id
+    partition_by:
+      - order_date
+
+  gold:
+    type: delta
+    path: /data/lake/gold/sales/daily_aggregates
+    mode: overwrite
+    partition_by:
+      - report_date
+
+transformations:
+  cleansing:
+    - trim_strings: true
+    - fill_nulls:
+        quantity: 0

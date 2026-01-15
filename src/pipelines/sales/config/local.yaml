@@ -1,0 +1,38 @@
+# Configuration Local - Pipeline Sales (Test/Development)
+pipeline:
+  name: sales_orders_pipeline
+  version: "1.0.0"
+  owner: data-team
+
+sources:
+  orders:
+    type: csv
+    path: ./data/raw/orders.csv
+
+  customers:
+    type: csv
+    path: ./data/raw/customers.csv
+
+targets:
+  bronze:
+    type: delta
+    path: ./data/processed/bronze/sales/orders
+    mode: append
+
+  silver:
+    type: delta
+    path: ./data/processed/silver/sales/orders
+    mode: merge
+    merge_keys:
+      - order_id
+
+  gold:
+    type: delta
+    path: ./data/processed/gold/sales/daily_aggregates
+    mode: overwrite
+
+transformations:
+  cleansing:
+    - trim_strings: true
+    - fill_nulls:
+        quantity: 0
