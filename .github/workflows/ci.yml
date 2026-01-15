@@ -232,7 +232,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./infrastructure/docker
+          context: .
           file: ./infrastructure/docker/Dockerfile.spark-job
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
