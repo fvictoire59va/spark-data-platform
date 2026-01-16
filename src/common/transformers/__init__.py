@@ -10,31 +10,31 @@ from src.common.transformers.cleaning import (
     TrimStringsTransformer,
 )
 from src.common.transformers.deduplication import DeduplicationTransformer
+from src.common.transformers.gold_transformers import (
+    CustomerSalesAggregationTransformer,
+    CustomerSegmentAggregationTransformer,
+    DailySalesAggregationTransformer,
+    GoldTransformer,
+    MonthlyTrendsTransformer,
+    ProductSalesAggregationTransformer,
+    RFMAnalysisTransformer,
+    TopProductsTransformer,
+)
+from src.common.transformers.silver_transformers import (
+    DeliveryTimeCalculationTransformer,
+    DiscountAnalysisTransformer,
+    FulfillmentStatusTransformer,
+    MarginCalculationTransformer,
+    OrderEnrichmentTransformer,
+    OrderValueSegmentationTransformer,
+    PaymentStatusTransformer,
+    RepeatOrderDetectionTransformer,
+    SilverTransformer,
+    TaxCalculationTransformer,
+)
 from src.common.transformers.validation import (
     SchemaEnforcementTransformer,
     TypeCastTransformer,
-)
-from src.common.transformers.silver_transformers import (
-    SilverTransformer,
-    OrderEnrichmentTransformer,
-    MarginCalculationTransformer,
-    OrderValueSegmentationTransformer,
-    RepeatOrderDetectionTransformer,
-    DeliveryTimeCalculationTransformer,
-    TaxCalculationTransformer,
-    DiscountAnalysisTransformer,
-    PaymentStatusTransformer,
-    FulfillmentStatusTransformer,
-)
-from src.common.transformers.gold_transformers import (
-    GoldTransformer,
-    DailySalesAggregationTransformer,
-    ProductSalesAggregationTransformer,
-    CustomerSalesAggregationTransformer,
-    MonthlyTrendsTransformer,
-    CustomerSegmentAggregationTransformer,
-    TopProductsTransformer,
-    RFMAnalysisTransformer,
 )
 
 __all__ = [

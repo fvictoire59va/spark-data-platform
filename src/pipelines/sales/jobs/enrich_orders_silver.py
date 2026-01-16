@@ -39,17 +39,6 @@ class EnrichOrdersSilverJob(BaseSparkJob):
         # Lire les commandes
         orders_df = reader.read()
 
-        # Lire les dimensions (clients, produits) si disponibles
-        try:
-            customers_df = reader.read()  # À adapter selon la config
-        except Exception:
-            customers_df = None
-
-        try:
-            products_df = reader.read()  # À adapter selon la config
-        except Exception:
-            products_df = None
-
         return orders_df
 
     def transform(self, df: DataFrame) -> DataFrame:

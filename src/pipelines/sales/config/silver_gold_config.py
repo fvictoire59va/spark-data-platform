@@ -6,7 +6,6 @@ Il peut être chargé depuis un fichier YAML ou une base de données en producti
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -94,16 +93,16 @@ class GoldTransformerConfig:
 class PipelineConfig:
     """Configuration globale du pipeline Silver/Gold."""
 
-    silver_config: Optional[SilverTransformerConfig] = None
-    gold_config: Optional[GoldTransformerConfig] = None
+    silver_config: SilverTransformerConfig | None = None
+    gold_config: GoldTransformerConfig | None = None
 
     # Partition columns pour optimisation
-    silver_partition_cols: Optional[list[str]] = None
-    gold_partition_cols: Optional[list[str]] = None
+    silver_partition_cols: list[str] | None = None
+    gold_partition_cols: list[str] | None = None
 
     # Z-order columns pour optimisation
-    silver_zorder_cols: Optional[list[str]] = None
-    gold_zorder_cols: Optional[list[str]] = None
+    silver_zorder_cols: list[str] | None = None
+    gold_zorder_cols: list[str] | None = None
 
     # Validation stricte
     fail_on_validation_error: bool = True

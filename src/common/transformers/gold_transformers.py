@@ -303,8 +303,6 @@ class RFMAnalysisTransformer(GoldTransformer):
 
     def transform(self, df: DataFrame) -> DataFrame:
         """Crée une analyse RFM des clients."""
-        report_date = F.max("order_date").over(Window.partitionBy()).alias("max_date")
-
         rfm = (
             df.withColumn("report_date", F.to_date(F.col("order_date")))
             .groupBy("report_date", "customer_id", "customer_name")
