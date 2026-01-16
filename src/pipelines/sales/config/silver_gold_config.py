@@ -29,7 +29,7 @@ class SilverTransformerConfig:
     # DeliveryTimeCalculationTransformer
     max_delivery_days: int = 30  # Jours maxi livraison normal
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialise les configurations par défaut."""
         if not self.tax_rates:
             self.tax_rates = {
@@ -78,7 +78,7 @@ class GoldTransformerConfig:
     enable_ranking: bool = True  # Ajouter rankings
     enable_percentiles: bool = True  # Calculer percentiles
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialise les configurations par défaut."""
         if not self.vip_segment_criteria:
             self.vip_segment_criteria = {
@@ -111,7 +111,7 @@ class PipelineConfig:
     enable_caching: bool = True
     cache_strategy: str = "memory_and_disk"  # "memory", "disk", "memory_and_disk"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialise les configurations par défaut."""
         if self.silver_config is None:
             self.silver_config = SilverTransformerConfig()
