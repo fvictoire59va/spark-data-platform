@@ -16,9 +16,11 @@ def run_ingest_orders_job(environment: str = "dev") -> int:
 
     # Copier le répertoire src dans le container
     print("📦 Préparation du code...")
+    # Obtenir le répertoire racine du projet
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     subprocess.run(
-        ["docker", "cp", ".", "spark-master:/opt/spark-apps/project"],
-        cwd=os.path.dirname(os.path.abspath(__file__)),
+        ["docker", "cp", "src", "spark-master:/opt/spark-apps/project/"],
+        cwd=project_root,
         capture_output=True,
     )
 

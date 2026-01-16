@@ -1,0 +1,17 @@
+# Grafana Dashboards Provisioning
+# ================================
+
+apiVersion: 1
+
+providers:
+  - name: 'Spark Data Platform Dashboards'
+    orgId: 1
+    folder: 'Spark Platform'
+    folderUid: 'spark-platform'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

@@ -1,0 +1,95 @@
+# Prometheus Configuration for Spark Data Platform
+# ================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'spark-data-platform'
+    environment: 'development'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+# Scrape configurations
+scrape_configs:
+  # ============ PROMETHEUS SELF-MONITORING ============
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+
+  # ============ SPARK MASTER METRICS ============
+  - job_name: 'spark-master'
+    static_configs:
+      - targets: ['spark-master:8080']
+    metrics_path: /metrics/master/prometheus
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # ============ SPARK WORKER METRICS ============
+  - job_name: 'spark-workers'
+    static_configs:
+      - targets:
+        - 'spark-worker-1:8081'
+        - 'spark-worker-2:8082'
+    metrics_path: /metrics/prometheus
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # ============ SPARK APPLICATION METRICS ============
+  - job_name: 'spark-applications'
+    static_configs:
+      - targets: ['spark-master:4040']
+    metrics_path: /metrics/prometheus
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    # This will fail when no app is running, which is expected
+
+  # ============ NODE EXPORTER (System Metrics) ============
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+  # ============ CADVISOR (Container Metrics) - DÉSACTIVÉ SOUS WINDOWS ============
+  # cAdvisor n'est pas compatible avec Docker Desktop Windows
+  # Pour activer sous Linux, décommenter et configurer la cible
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+  #   scrape_interval: 15s
+
+  # ============ POSTGRESQL METRICS ============
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+  # ============ MINIO METRICS ============
+  - job_name: 'minio'
+    static_configs:
+      - targets: ['minio:9000']
+    metrics_path: /minio/v2/metrics/cluster
+    scheme: http
+    scrape_interval: 30s
+
+  # ============ ALERTMANAGER ============
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+    scrape_interval: 30s
+
+  # ============ GRAFANA ============
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    scrape_interval: 30s
