@@ -1,10 +1,12 @@
 """Test rapide de la configuration Airflow."""
+
 import sys
 from pathlib import Path
 
 # Ajouter le répertoire des DAGs au chemin
-dag_dir = Path(__file__).parent / "orchestration" / "airflow" / "dags"
+dag_dir = Path(__file__).parent.parent.parent / "orchestration" / "airflow" / "dags"
 sys.path.insert(0, str(dag_dir))
+
 
 def test_dag_syntax():
     """Vérifier la syntaxe du DAG."""
@@ -29,6 +31,7 @@ def test_dag_syntax():
     except Exception as e:
         print(f"❌ Erreur: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
