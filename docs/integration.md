@@ -59,7 +59,7 @@ poetry install
 
 ## 3. Configuration (mkdocs.yml)
 
-Le fichier [mkdocs.yml](../mkdocs.yml) centralise :
+Le fichier `mkdocs.yml` à la racine du projet centralise :
 
 - **Navigation** : Structure des pages et menus
 - **Thème** : Couleurs, logos, fonctionnalités Material
@@ -118,7 +118,7 @@ make clean-all
 
 ## 5. Workflow GitHub Actions
 
-Le fichier [.github/workflows/docs.yml](.github/workflows/docs.yml) automatise :
+Le fichier `.github/workflows/docs.yml` à la racine du projet automatise :
 
 ### 1. Validation (tous les PRs)
 

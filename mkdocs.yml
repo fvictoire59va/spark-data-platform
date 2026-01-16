@@ -10,8 +10,6 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
-  logo: assets/logo.png
-  favicon: assets/favicon.ico
   language: en
   palette:
     - scheme: light
@@ -46,53 +44,28 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
-
-  - Architecture:
-    - Overview: architecture.md
-    - Medallion Pattern: architecture.md#2-architecture-applicative-medallion-pattern
-    - Source Code Structure: architecture.md#3-structure-du-code-source
-    - Docker Infrastructure: architecture.md#4-infrastructure-docker-développement-local
-    - Cloud Infrastructure: architecture.md#5-infrastructure-cloud-production
-    - Data Flow Diagram: architecture.md#13-diagramme-de-flux-de-données-complet
-
-  - Development Guide:
-    - Development Setup: getting-started.md#installation-and-setup
-    - Local Development: getting-started.md#local-development
-    - Docker Development: architecture.md#73-développement-avec-docker
-    - Testing: architecture.md#10-tests
-    - Code Quality: getting-started.md#code-quality
-    - Pre-commit Hooks: getting-started.md#pre-commit-hooks
-
+  - Architecture: architecture.md
   - Guides:
+    - README: guides/README.md
     - Documentation Integration: guides/integration.md
     - Quick Start: guides/quickstart.md
     - Before & After: guides/before-after.md
     - Checklist: guides/checklist.md
     - Summary: guides/summary.md
-    - Silver & Gold Layers: README_SILVER_GOLD.md
-    - Silver & Gold Pipeline: SILVER_GOLD_GUIDE.md
-    - Implementation Summary: IMPLEMENTATION_SUMMARY.md
-    - Testing Guide: INGEST_ORDERS_TEST_REPORT.md
-
+  - Silver & Gold:
+    - Overview: README_SILVER_GOLD.md
+    - Pipeline Guide: SILVER_GOLD_GUIDE.md
+    - Implementation: SILVER_GOLD_IMPLEMENTATION.md
   - Deployment:
-    - Deployment Overview: architecture.md#8-workflow-de-déploiement
+    - Overview: IMPLEMENTATION_SUMMARY.md
     - Airflow Orchestration: AIRFLOW_DEPLOYMENT_SUMMARY.md
     - Airflow Setup: AIRFLOW_SETUP.md
-    - Terraform IaC: architecture.md#5-infrastructure-cloud-production
-    - Environments: architecture.md#6-environnements-et-configuration
-
-  - Operations:
-    - Commands Reference: architecture.md#12-résumé-des-commandes-essentielles
-    - Make Targets: architecture.md#74-commandes-make-principales
-    - Monitoring: architecture.md#1-vue-densemble-du-projet
-    - Best Practices: architecture.md#11-bonnes-pratiques-implémentées
-
+  - Testing: INGEST_ORDERS_TEST_REPORT.md
   - API Reference: api-reference.md
 
 plugins:
   - search:
       lang: en
-      prebuild_index: true
   - minify:
       minify_html: true
       minify_js: true

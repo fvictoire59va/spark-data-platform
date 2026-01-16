@@ -129,10 +129,10 @@ Quick Start → Before & After → Integration Guide → Checklist → Summary
 
 ## 🔗 Références Croisées
 
-- **Architecture complète**: Voir [../architecture.md](../architecture.md)
-- **Getting Started**: Voir [../getting-started.md](../getting-started.md)
-- **Configuration MkDocs**: Voir [../mkdocs.yml](../../mkdocs.yml)
-- **GitHub Actions**: Voir [../.github/workflows/docs.yml](../../.github/workflows/docs.yml)
+- **Architecture complète**: Voir [architecture.md](../architecture.md)
+- **Getting Started**: Voir [getting-started.md](../getting-started.md)
+- **Configuration MkDocs**: Consultez `mkdocs.yml` à la racine du projet
+- **GitHub Actions**: Consultez `.github/workflows/docs.yml` à la racine du projet
 
 ---
 

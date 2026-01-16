@@ -462,8 +462,8 @@ df.filter(F.col("customer_id").isNull()).count()
 ## 📚 Documentation
 
 Pour plus de détails, consulter:
-- [SILVER_GOLD_IMPLEMENTATION.md](./docs/SILVER_GOLD_IMPLEMENTATION.md) - Documentation technique complète
-- [README.md](./README.md) - Vue d'ensemble du projet
+- [SILVER_GOLD_IMPLEMENTATION.md](SILVER_GOLD_IMPLEMENTATION.md) - Documentation technique complète
+- Visitez le site de documentation complète pour l'overview du projet
 - Code source avec docstrings détaillés
 
 ---
