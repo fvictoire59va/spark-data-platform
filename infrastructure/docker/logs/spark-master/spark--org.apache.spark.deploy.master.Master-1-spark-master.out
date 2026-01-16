@@ -1,2 +1,9 @@
 Spark Command: /opt/java/openjdk/bin/java -cp /opt/spark/conf/:/opt/spark/jars/* -Xmx1g org.apache.spark.deploy.master.Master --host spark-master --port 7077 --webui-port 8080
 ========================================
+2026-01-15 19:35:10 WARN  NativeCodeLoader:60 - Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+2026-01-15 19:35:48 WARN  Master:72 - Got status update for unknown executor app-20260115193537-0000/0
+2026-01-15 19:35:48 WARN  Master:72 - Got status update for unknown executor app-20260115193537-0000/1
+2026-01-15 19:36:03 WARN  Master:72 - Got status update for unknown executor app-20260115193553-0001/0
+2026-01-15 19:36:03 WARN  Master:72 - Got status update for unknown executor app-20260115193553-0001/1
+2026-01-15 19:36:12 WARN  Master:72 - Got status update for unknown executor app-20260115193554-0002/0
+2026-01-15 19:36:12 WARN  Master:72 - Got status update for unknown executor app-20260115193554-0002/1

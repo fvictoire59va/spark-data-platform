@@ -207,6 +207,8 @@ services:
     volumes:
       - ../../orchestration/airflow/dags:/opt/airflow/dags
       - ../../orchestration/airflow/plugins:/opt/airflow/plugins
+      - ../../src:/opt/spark/src
+      - ../../src/pipelines/sales/jobs:/opt/spark-apps
       - ./logs/airflow:/opt/airflow/logs
     networks:
       - spark-network
@@ -215,6 +217,7 @@ services:
         condition: service_healthy
     command: >
       bash -c "
+        export PYTHONPATH=/opt/spark:$$PYTHONPATH &&
         airflow db init &&
         airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com ||
         true &&
@@ -237,9 +240,12 @@ services:
       - AIRFLOW__SCHEDULER__CATCHUP_BY_DEFAULT=False
       - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=300
       - AIRFLOW_CONN_SPARK_DEFAULT=spark://spark-master:7077
+      - PYTHONPATH=/opt/spark
     volumes:
       - ../../orchestration/airflow/dags:/opt/airflow/dags
       - ../../orchestration/airflow/plugins:/opt/airflow/plugins
+      - ../../src:/opt/spark/src
+      - ../../src/pipelines/sales/jobs:/opt/spark-apps
       - ./logs/airflow:/opt/airflow/logs
     networks:
       - spark-network
