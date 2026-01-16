@@ -1,0 +1,153 @@
+site_name: Spark Data Platform
+site_description: Enterprise Spark Data Platform with Medallion Architecture
+site_author: Data Team
+site_url: https://spark-data-platform.example.com
+repo_url: https://github.com/fvictoire59va/spark-data-platform
+repo_name: spark-data-platform
+docs_dir: docs
+site_dir: site
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/favicon.ico
+  language: en
+  palette:
+    - scheme: light
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to dark mode
+    - scheme: dark
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/lightbulb
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.action.edit
+    - header.autohide
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+
+  - Architecture:
+    - Overview: architecture.md
+    - Medallion Pattern: architecture.md#2-architecture-applicative-medallion-pattern
+    - Source Code Structure: architecture.md#3-structure-du-code-source
+    - Docker Infrastructure: architecture.md#4-infrastructure-docker-développement-local
+    - Cloud Infrastructure: architecture.md#5-infrastructure-cloud-production
+    - Data Flow Diagram: architecture.md#13-diagramme-de-flux-de-données-complet
+
+  - Development Guide:
+    - Development Setup: getting-started.md#installation-and-setup
+    - Local Development: getting-started.md#local-development
+    - Docker Development: architecture.md#73-développement-avec-docker
+    - Testing: architecture.md#10-tests
+    - Code Quality: getting-started.md#code-quality
+    - Pre-commit Hooks: getting-started.md#pre-commit-hooks
+
+  - Guides:
+    - Documentation Integration: guides/integration.md
+    - Quick Start: guides/quickstart.md
+    - Before & After: guides/before-after.md
+    - Checklist: guides/checklist.md
+    - Summary: guides/summary.md
+    - Silver & Gold Layers: README_SILVER_GOLD.md
+    - Silver & Gold Pipeline: SILVER_GOLD_GUIDE.md
+    - Implementation Summary: IMPLEMENTATION_SUMMARY.md
+    - Testing Guide: INGEST_ORDERS_TEST_REPORT.md
+
+  - Deployment:
+    - Deployment Overview: architecture.md#8-workflow-de-déploiement
+    - Airflow Orchestration: AIRFLOW_DEPLOYMENT_SUMMARY.md
+    - Airflow Setup: AIRFLOW_SETUP.md
+    - Terraform IaC: architecture.md#5-infrastructure-cloud-production
+    - Environments: architecture.md#6-environnements-et-configuration
+
+  - Operations:
+    - Commands Reference: architecture.md#12-résumé-des-commandes-essentielles
+    - Make Targets: architecture.md#74-commandes-make-principales
+    - Monitoring: architecture.md#1-vue-densemble-du-projet
+    - Best Practices: architecture.md#11-bonnes-pratiques-implémentées
+
+  - API Reference: api-reference.md
+
+plugins:
+  - search:
+      lang: en
+      prebuild_index: true
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - meta
+  - tables
+  - toc:
+      permalink: true
+      title: Table of contents
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:pymdownx.emoji.twemoji
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+  - pymdownx.highlight:
+      use_pygments: true
+      linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  version: 1.0.0
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/fvictoire59va/spark-data-platform
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com
+
+extra_css:
+  - assets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+copyright: Copyright &copy; 2024-2026 Data Team. All rights reserved.

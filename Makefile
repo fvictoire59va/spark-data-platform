@@ -150,22 +150,38 @@ tf-apply: ## Applique Terraform (ENV=<env>)
 docs: ## Génère la documentation
     @echo "$(BLUE)Génération de la documentation...$(NC)"
     poetry run mkdocs build
+	@echo "$(GREEN)Documentation générée dans le dossier 'site/'$(NC)"
 
 docs-serve: ## Sert la documentation localement
-    @echo "$(BLUE)Documentation: http://localhost:8000$(NC)"
-    poetry run mkdocs serve
+	@echo "$(BLUE)Démarrage du serveur de documentation...$(NC)"
+	@echo "$(GREEN)Documentation: http://localhost:8000$(NC)"
+	poetry run mkdocs serve
+
+docs-build-strict: ## Génère la documentation en mode strict (avec validation)
+	@echo "$(BLUE)Génération stricte de la documentation...$(NC)"
+	poetry run mkdocs build --strict
+
+docs-validate: ## Valide la documentation
+	@echo "$(BLUE)Validation de la documentation...$(NC)"
+	@test -f mkdocs.yml || (echo "mkdocs.yml non trouvé" && exit 1)
+	@test -d docs || (echo "Dossier docs non trouvé" && exit 1)
+	poetry run mkdocs build --strict
+
+docs-clean: ## Nettoie les fichiers générés de documentation
+	@echo "$(BLUE)Nettoyage de la documentation...$(NC)"
+	rm -rf site/
 
 # ============ NETTOYAGE ============
 clean: ## Nettoie les fichiers temporaires
-    @echo "$(BLUE)Nettoyage...$(NC)"
-    rm -rf dist/ build/ *.egg-info
-    rm -rf .pytest_cache/ .mypy_cache/ .ruff_cache/
-    rm -rf htmlcov/ .coverage coverage.xml
-    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-    find . -type f -name "*.pyc" -delete
+	@echo "$(BLUE)Nettoyage...$(NC)"
+	rm -rf dist/ build/ *.egg-info
+	rm -rf .pytest_cache/ .mypy_cache/ .ruff_cache/
+	rm -rf htmlcov/ .coverage coverage.xml
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete
 
-clean-all: clean ## Nettoyage complet (inclut .venv)
-    rm -rf .venv/
+clean-all: clean docs-clean ## Nettoyage complet (inclut .venv)
+	rm -rf .venv/
 
 # ============ UTILITAIRES ============
 shell: ## Lance un shell Python

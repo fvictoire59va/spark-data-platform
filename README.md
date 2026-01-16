@@ -13,6 +13,7 @@ Plateforme de données basée sur **Apache Spark** et **Delta Lake** suivant l'a
 - [Architecture](#-architecture)
 - [Prérequis](#-prérequis)
 - [Installation](#-installation)
+- [Documentation](#-documentation)
 - [Utilisation](#-utilisation)
 - [Structure du projet](#-structure-du-projet)
 - [Développement](#-développement)
@@ -74,24 +75,77 @@ make spark-up
 # Vérifier l'installation
 make test
 
-Utilisation
-Lancer un job localement
+## 📚 Documentation
+
+La documentation complète du projet est générée avec **MkDocs** et disponible en ligne.
+
+### Consulter la documentation localement
+
+```bash
+# Servir la documentation en développement
+make docs-serve
+# → http://localhost:8000
+
+# Générer la documentation
+make docs
+```
+
+### Documentation en ligne
+
+- **Architecture** : Voir [docs/architecture.md](docs/architecture.md)
+- **Guide d'intégration** : Voir [docs/guides/integration.md](docs/guides/integration.md)
+- **Quick Start** : Voir [docs/guides/quickstart.md](docs/guides/quickstart.md)
+- **Getting Started** : Voir [docs/getting-started.md](docs/getting-started.md)
+- **GitHub Pages** : https://spark-data-platform.example.com (après déploiement)
+
+### Structures de la documentation
+
+```
+docs/
+├── index.md                    # Accueil
+├── architecture.md             # Architecture complète
+├── getting-started.md          # Quick start
+├── api-reference.md            # Référence API
+└── guides/                     # Guides détaillés
+    ├── README.md               # Index des guides
+    ├── integration.md          # Intégration documentation
+    ├── quickstart.md           # Quick start guide
+    ├── before-after.md         # Analyse avant/après
+    ├── checklist.md            # Checklist finalisation
+    └── summary.md              # Récapitulatif technique
+```
+
+## 🎯 Utilisation
+
+### Lancer un job localement
+
+```bash
 # Via Make
 make run-job-local JOB=sales.ingest_orders
 
 # Via script
 ./scripts/submit_job.sh sales.ingest_orders dev --mode local
-Lancer un job sur le cluster
+```
+
+### Lancer un job sur le cluster
+
+```bash
 # Développement
 ./scripts/submit_job.sh sales.ingest_orders dev
 
 # Production
 ./scripts/submit_job.sh sales.transform_orders prod --date 2024-01-15
-Interface Spark
+```
 
-Spark Master UI: http://localhost:8080
-Spark History: http://localhost:18080
-Jupyter Lab: http://localhost:8888
+### Interfaces Web
+
+| Service | URL |
+|---------|-----|
+| Spark Master UI | http://localhost:8080 |
+| Spark History | http://localhost:18080 |
+| Jupyter Lab | http://localhost:8888 (token: spark123) |
+| Airflow Web | http://localhost:8082 (après `make airflow-up`) |
+| MinIO Console | http://localhost:9001 |
 
 Structure du projet
 spark-data-platform/
@@ -194,4 +248,3 @@ MIT License - voir LICENSE
 Documentation: docs/
 Issues: GitHub Issues
 Slack: #data-platform
-

@@ -20,8 +20,8 @@ CREATE TABLE sales.orders (
 );
 
 -- Insérer les données de test
-INSERT INTO sales.orders (order_id, customer_id, order_datetime, product_id, quantity, unit_price, discount, status) 
-VALUES 
+INSERT INTO sales.orders (order_id, customer_id, order_datetime, product_id, quantity, unit_price, discount, status)
+VALUES
     ('ORD-20260115-001', 'CUST-001', '2026-01-15 08:00:00', 'PROD-A', 2, 49.99, 0.00, 'COMPLETED'),
     ('ORD-20260115-002', 'CUST-002', '2026-01-15 09:30:00', 'PROD-B', 1, 99.99, 10.00, 'COMPLETED'),
     ('ORD-20260115-003', 'CUST-001', '2026-01-15 10:15:00', 'PROD-C', 5, 19.99, 0.00, 'PENDING'),

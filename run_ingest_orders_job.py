@@ -1,7 +1,8 @@
 """Wrapper pour exécuter le job IngestOrdersJob dans Spark."""
+
+import os
 import subprocess
 import sys
-import os
 
 
 def run_ingest_orders_job(environment: str = "dev") -> int:

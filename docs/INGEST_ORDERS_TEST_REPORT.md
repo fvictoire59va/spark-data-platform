@@ -15,7 +15,7 @@ Le job **IngestOrdersJob** a été exécuté avec succès en utilisant une conne
 ### Données Ingérées
 - **Total de lignes**: 8 commandes
 - **Format**: DataFrame avec schéma complet
-- **Métadonnées ajoutées**: 
+- **Métadonnées ajoutées**:
   - `_ingestion_timestamp`: Horodatage du traitement
   - `_source`: "jdbc_orders"
 
